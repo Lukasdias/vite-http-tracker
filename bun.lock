@@ -13,11 +13,35 @@
         "typescript": "^5.5.0",
       },
     },
+    "apps/react-app": {
+      "name": "@http-tracker/react-app",
+      "version": "0.0.0",
+      "dependencies": {
+        "@http-tracker/agent": "*",
+        "react": "^19.2.8",
+        "react-dom": "^19.2.8",
+      },
+      "devDependencies": {
+        "@http-tracker/plugin": "*",
+        "@types/react": "^19.0.0",
+        "@types/react-dom": "^19.0.0",
+        "@vitejs/plugin-react": "^6.1.0",
+        "typescript": "^5.5.0",
+        "vite": "^8.0.0",
+      },
+    },
     "packages/agent": {
       "name": "@http-tracker/agent",
       "version": "0.0.0",
       "dependencies": {
         "@http-tracker/shared": "*",
+      },
+    },
+    "packages/plugin": {
+      "name": "@http-tracker/plugin",
+      "version": "0.0.0",
+      "peerDependencies": {
+        "vite": "^8.0.0",
       },
     },
     "packages/server": {
@@ -68,6 +92,10 @@
     "@happy-dom/global-registrator": ["@happy-dom/global-registrator@15.11.7", "", { "dependencies": { "happy-dom": "^15.11.7" } }, "sha512-mfOoUlIw8VBiJYPrl5RZfMzkXC/z7gbSpi2ecycrj/gRWLq2CMV+Q+0G+JPjeOmuNFgg0skEIzkVFzVYFP6URw=="],
 
     "@http-tracker/agent": ["@http-tracker/agent@workspace:packages/agent"],
+
+    "@http-tracker/plugin": ["@http-tracker/plugin@workspace:packages/plugin"],
+
+    "@http-tracker/react-app": ["@http-tracker/react-app@workspace:apps/react-app"],
 
     "@http-tracker/server": ["@http-tracker/server@workspace:packages/server"],
 
