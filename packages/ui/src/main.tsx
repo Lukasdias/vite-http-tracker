@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "sonner";
 import "@fontsource/ibm-plex-sans/400.css";
 import "@fontsource/ibm-plex-sans/500.css";
 import "@fontsource/ibm-plex-sans/600.css";
@@ -22,5 +23,6 @@ if (root)
   createRoot(root).render(
     <QueryClientProvider client={queryClient}>
       <App />
+      <Toaster theme="dark" position="bottom-left" richColors />
     </QueryClientProvider>,
   );

@@ -1,5 +1,10 @@
 import type { RequestRecord } from "@http-tracker/shared";
+import { CopyIcon } from "@radix-ui/react-icons";
+import { toast } from "sonner";
+import { toCurl } from "../curl.js";
 import { methodColor, statusClass, type RecordGroup } from "../graph.js";
+import { queryParams } from "../json.js";
+import { BodyViewer, KeyValueRows } from "./BodyViewer.js";
 
 export interface InspectPanelProps {
   group: RecordGroup | null;
@@ -35,6 +40,24 @@ function headersTable(headers: Record<string, string>) {
   );
 }
 
+function mimeOf(headers?: Record<string, string>): string | undefined {
+  const ct = headers?.["content-type"];
+  return ct ? ct.split(";")[0] : undefined;
+}
+
+function SectionHeader({ title, mime }: { title: string; mime?: string }) {
+  return (
+    <div className="mb-2 flex items-baseline gap-2">
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-base-content/60">
+        {title}
+      </h3>
+      {mime && (
+        <span className="truncate font-mono text-[10px] text-base-content/40">· {mime}</span>
+      )}
+    </div>
+  );
+}
+
 export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
   if (!record) {
     return (
@@ -46,13 +69,32 @@ export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
 
   const members = group?.members ?? [record];
   const isGroup = members.length > 1;
+  const query = queryParams(record.url);
+
+  const copyCurl = async () => {
+    const cmd = toCurl(record);
+    try {
+      await navigator.clipboard.writeText(cmd);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = cmd;
+      ta.style.position = "fixed";
+      ta.style.opacity = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    toast.success("cURL copied!");
+  };
 
   return (
     <aside className="h-full overflow-y-auto">
       <header className="flex items-start justify-between gap-2 border-b border-base-300 p-3">
         <div>
           <div className="font-semibold" style={{ color: methodColor(record.method) }}>
-            {record.method} <span className="font-normal">{record.url}</span>
+            {record.method} <span className="font-normal break-all">{record.url}</span>
           </div>
           <div className="mt-1 text-xs text-base-content/70">
             Status {record.status} · {record.duration}ms · {record.bodySizeBytes ?? 0} B
@@ -71,9 +113,7 @@ export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
 
       {isGroup && (
         <section className="border-b border-base-300 p-3">
-          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-base-content/60">
-            Duplicate requests
-          </h3>
+          <SectionHeader title="Duplicate requests" />
           <ul className="space-y-1">
             {members.map((m, i) => (
               <li
@@ -94,36 +134,40 @@ export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
         </section>
       )}
 
+      {query && (
+        <section className="border-b border-base-300 p-3">
+          <SectionHeader title="Query params" />
+          <KeyValueRows rows={query} />
+        </section>
+      )}
+
       <section className="border-b border-base-300 p-3">
-        <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-base-content/60">
-          Request headers
-        </h3>
+        <SectionHeader title="Request headers" />
         {headersTable(record.requestHeaders ?? {})}
       </section>
       <section className="border-b border-base-300 p-3">
-        <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-base-content/60">
-          Response headers
-        </h3>
+        <SectionHeader title="Response headers" />
         {headersTable(record.responseHeaders ?? {})}
       </section>
       <section className="border-b border-base-300 p-3">
-        <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-base-content/60">
-          Request body
-        </h3>
-        <pre className="whitespace-pre-wrap break-all text-xs mono">
-          {record.requestBody ?? "—"}
-        </pre>
+        <SectionHeader title="Request body" mime={mimeOf(record.requestHeaders)} />
+        <BodyViewer raw={record.requestBody} />
       </section>
       <section className="p-3">
-        <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-base-content/60">
-          Response body
-        </h3>
-        <pre className="whitespace-pre-wrap break-all text-xs mono">
-          {record.bodyTruncated
-            ? `[truncated]\n${record.responseBody ?? ""}`
-            : (record.responseBody ?? "—")}
-        </pre>
+        <SectionHeader title="Response body" mime={mimeOf(record.responseHeaders)} />
+        <BodyViewer
+          raw={record.responseBody}
+          truncated={record.bodyTruncated}
+          opaque={record.opaque}
+          streaming={record.streaming}
+        />
       </section>
+      <div className="sticky bottom-0 border-t border-base-300 bg-base-100 p-3">
+        <button type="button" className="btn btn-primary btn-sm w-full" onClick={copyCurl}>
+          <CopyIcon className="size-3.5" />
+          Copy as cURL
+        </button>
+      </div>
     </aside>
   );
 }

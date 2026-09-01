@@ -100,6 +100,28 @@ export default defineConfig({
 
 No other code changes are required. The agent connects to `ws://<page-host>:4000/events`.
 
+## How to use
+
+### For humans: end-to-end walkthrough
+
+1. **Install** dependencies: `bun install`.
+2. **Start the tracker** (terminal 1): `bun run packages/server/src/cli.ts --no-open`, then open the dashboard at `http://localhost:4000/?token=dev`.
+3. **Start your app** (terminal 2): `npm run dev` (or the sample, `bun run --cwd apps/react-app dev`), then load it in a browser.
+4. **Capture**: the injected agent starts streaming each request to the dashboard as your app runs. You don't need to click anything.
+5. **Pick a call**: click a node to open the inspector on the right. It shows:
+   - **Query params** — the request URL's query string, as a parsed key/value table.
+   - **Request / Response headers** — full header tables.
+   - **Request / Response body** — auto-parsed into a collapsible tree when it is JSON (objects, arrays, and even stringified JSON nested inside); form-encoded bodies become a key/value list; anything else shows the raw text with a `Structure / Raw` toggle. `truncated`, `streaming`, and `opaque` bodies are flagged with a banner.
+   - **Copy as cURL** — the sticky button at the bottom copies a runnable `curl` command (method, headers, body) and shows a "cURL copied!" toast.
+6. **Narrow the view**: filter by method / status / URL substring; flip orientation with `→`/`↓`; show/hide the timeline arrows; use zoom and fit-view to frame the flow; **Clear** empties the server buffer.
+
+#### Troubleshooting
+
+- **Dashboard says "offline"** — the server isn't running, or the token/protocol don't match. Start `bun run packages/server/src/cli.ts` and keep the `?token=dev` in the dashboard URL.
+- **No calls appear** — the agent isn't injected. For dev, confirm `httpTracker()` is in `vite.config.ts`, or call `initAgent()` manually. The plugin is dev-only (`apply: "serve"`) — it does not inject during `vite build`.
+- **Bodies show as `opaque`** — the call is cross-origin and page JS can't read the response (CORS). DevTools is CORS-exempt; page code is not.
+- **WSL2** — open the dashboard via `localhost:<port>` forwarding, not the WSL IP.
+
 ## Reading the graph
 
 - **Timeline:** nodes are ordered by start time — earlier calls to the *left* (horizontal) or *top* (vertical) — and connected by animated arrows. `→`/`↓` toggles orientation.
@@ -140,6 +162,46 @@ UI can point at a different server via the `ws` query param (e.g. `?token=dev&ws
 - **Streaming / non-serializable bodies** (`SSE`, `ReadableStream`, `FormData`, `Blob`) are not captured (marked `streaming`/`bodyTruncated` as appropriate).
 - **Dev-only injection.** The Vite plugin has `apply: "serve"` — it injects the agent only in dev, not in production builds.
 - **WSL networking.** The server binds `127.0.0.1`. In WSL2, access it via `localhost` forwarding (Windows browser → WSL), not the WSL IP, unless the server binds a non-loopback interface.
+
+## Agent guide
+
+`AGENTS.md` is the authoritative map (architecture, invariants, conventions). This section is the short version an AI agent should read before changing code.
+
+**Model:** `RequestRecord` in `packages/shared/src/types.ts` is the single canonical record type, flowing agent → server → UI.
+
+| Change | Where |
+|---|---|
+| New record field | add to `RequestRecord` in `shared`, populate it in the `agent` capture path, surface it in `ui` |
+| Graph behavior (dedup/batches/edges/layout) | pure functions in `ui/src/graph.ts` + `graph.test.ts` — keep React out of `graph.ts` |
+| Server behavior (endpoint/store/CLI flag) | `server/src/server.ts`, `store.ts`, `cli.ts`, mirrored in `server.test.ts` / `e2e.test.ts` |
+| Plugin behavior (injection/config) | `plugin/src/index.ts` (plugin is `apply: "serve"`, so verify with `vite dev`, not `vite build`) |
+| Sample scenarios | `apps/react-app/src/App.tsx` |
+
+**Commands:**
+```bash
+bun test                                          # all tests (Bun runner)
+bunx tsc --noEmit -p packages/<pkg>/tsconfig.json  # typecheck one package
+bunx oxlint packages apps                          # lint (oxlint)
+bunx oxfmt --write packages apps                   # format (oxfmt)
+bun run --cwd packages/ui build                    # rebuild the dashboard bundle
+```
+
+**Invariants to preserve:**
+- Server binds `127.0.0.1` only.
+- Token required on every ingest (`POST /events`) and every WS upgrade (`/events`, `/ws`).
+- Agent must append `?token=<token>` to its WS connect URL.
+- Caps: body `500_000` bytes, store `128 MB`, agent ring buffer `10_000` records, dedup window `200 ms`, batch window `2 ms`.
+- Sensitive headers/fields (`authorization`, `cookie`, `set-cookie`, `x-api-key`, `password`, `secret`, …) redacted to `[REDACTED]`.
+- `crypto.randomUUID()` must go through `newId()` in `capture.ts` (env-safe).
+- Dedup/batch are timing heuristics, not guarantees; graph edges are chronological, not causal.
+
+**Conventions:**
+- Lint/format via `oxlint` + `oxfmt` — no ESLint/Prettier.
+- Comments only when the "why" is non-obvious.
+- Explicit types on exports; no `any`; `import type` for type-only imports; import with a `.js` extension.
+- React Compiler via `react({ compiler: true })` — do not add `babel: { plugins: ['babel-plugin-react-compiler'] }`.
+- happy-dom is registered per test file, not via a global `bunfig.toml` preload.
+- Package exports point at `.ts` sources; the libs have no build step.
 
 ## Development
 

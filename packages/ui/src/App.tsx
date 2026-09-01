@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   Background,
-  Controls,
   MarkerType,
   ReactFlow,
   ReactFlowProvider,
@@ -18,7 +17,7 @@ import { useTrackerConnection } from "./hooks/useTrackerConnection.js";
 import { useClearRequests } from "./hooks/useClearRequests.js";
 import { useRequest } from "./hooks/useRequests.js";
 import { RequestNode, type RequestFlowNode } from "./components/RequestNode.js";
-import { FilterBar } from "./components/FilterBar.js";
+import { Header } from "./components/Header.js";
 import { InspectPanel } from "./components/InspectPanel.js";
 import { useTrackerToken } from "./hooks/useTrackerToken.js";
 import type { Orientation } from "./graph.js";
@@ -62,12 +61,11 @@ function FlowCanvas({
       onNodeClick={(_, node) => onNodeClick(node.id)}
     >
       <Background gap={24} size={1} />
-      <Controls className="!bottom-4 !left-4" />
     </ReactFlow>
   );
 }
 
-export function App() {
+function Dashboard() {
   const token = useTrackerToken();
   const wsUrl = useMemo(() => {
     const env = import.meta.env.VITE_HTTP_TRACKER_URL as string | undefined;
@@ -82,6 +80,7 @@ export function App() {
   const { groups, nodes, edges } = useGraph(filter, showEdges, orientation);
   const selected = useRequest(selectedId);
   const clear = useClearRequests(send);
+  const { fitView, zoomIn, zoomOut } = useReactFlow();
 
   const graphNodes = useMemo<RequestFlowNode[]>(
     () =>
@@ -120,22 +119,20 @@ export function App() {
     [groups, selectedId],
   );
 
+  const stats = useMemo(
+    () => ({
+      total: groups.reduce((n, g) => n + g.members.length, 0),
+      visible: nodes.length,
+      batches: nodes.filter((n) => (n.batchSize ?? 0) > 1).length,
+      duplicates: groups.filter((g) => g.members.length > 1).length,
+    }),
+    [groups, nodes],
+  );
+
   return (
     <div className="flex h-screen flex-col bg-base-100 text-base-content">
-      <header className="navbar border-b border-base-300">
-        <div className="navbar-start">
-          <span className="text-lg font-semibold">http-tracker</span>
-        </div>
-        <div className="navbar-end">
-          <span className={`badge badge-sm ${connected ? "badge-success" : "badge-warning"} gap-1`}>
-            <span
-              className={`status status-sm ${connected ? "status-success" : "status-warning"}`}
-            />
-            {connected ? "connected" : "disconnected"}
-          </span>
-        </div>
-      </header>
-      <FilterBar
+      <Header
+        connected={connected}
         filter={filter}
         onChange={setFilter}
         showEdges={showEdges}
@@ -143,17 +140,22 @@ export function App() {
         orientation={orientation}
         onOrientation={setOrientation}
         onClear={() => clear.mutate(token)}
+        onFitView={() => fitView({ padding: 0.2 })}
+        onZoomIn={() => zoomIn({ duration: 160 })}
+        onZoomOut={() => zoomOut({ duration: 160 })}
+        total={stats.total}
+        visible={stats.visible}
+        batches={stats.batches}
+        duplicates={stats.duplicates}
       />
       <div className="flex min-h-0 flex-1">
         <div className="min-w-0 flex-1">
-          <ReactFlowProvider>
-            <FlowCanvas
-              nodes={graphNodes}
-              edges={graphEdges}
-              orientation={orientation}
-              onNodeClick={setSelectedId}
-            />
-          </ReactFlowProvider>
+          <FlowCanvas
+            nodes={graphNodes}
+            edges={graphEdges}
+            orientation={orientation}
+            onNodeClick={setSelectedId}
+          />
         </div>
         <div className="hidden w-80 shrink-0 border-l border-base-300 md:block">
           <InspectPanel
@@ -164,5 +166,13 @@ export function App() {
         </div>
       </div>
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <ReactFlowProvider>
+      <Dashboard />
+    </ReactFlowProvider>
   );
 }

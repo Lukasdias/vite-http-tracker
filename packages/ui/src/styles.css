@@ -9,3 +9,28 @@
   --font-sans: "IBM Plex Sans", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
+
+.json-viewer {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.json-viewer .j-key {
+  color: #8ab4f8;
+}
+.json-viewer .j-string {
+  color: #4ad295;
+}
+.json-viewer .j-number {
+  color: #f5a623;
+}
+.json-viewer .j-bool {
+  color: #c07af0;
+}
+.json-viewer .j-null {
+  color: #8b93a7;
+  font-style: italic;
+}
+.json-viewer .j-punct {
+  color: #6b778b;
+}

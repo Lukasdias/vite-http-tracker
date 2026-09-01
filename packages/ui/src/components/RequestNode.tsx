@@ -1,5 +1,6 @@
 import type { Node, NodeProps } from "@xyflow/react";
 import { Handle, Position } from "@xyflow/react";
+import { LightningBoltIcon } from "@radix-ui/react-icons";
 import type { RequestRecord } from "@http-tracker/shared";
 import { methodColor, statusClass, type Orientation } from "../graph.js";
 
@@ -54,7 +55,10 @@ export function RequestNode({ data }: NodeProps<RequestFlowNode>) {
           <span className="badge badge-outline badge-sm text-base-content/70">×{dupCount}</span>
         )}
         {isBatch && (
-          <span className="badge badge-outline badge-sm text-warning">⚡×{batchSize}</span>
+          <span className="badge badge-outline badge-sm gap-1 text-warning">
+            <LightningBoltIcon className="size-3" />
+            {batchSize}
+          </span>
         )}
       </div>
       <div className="mt-1 max-w-56 truncate text-xs mono">{record.url}</div>
