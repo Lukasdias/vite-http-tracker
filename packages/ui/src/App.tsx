@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { Background, Controls, MarkerType, ReactFlow } from "@xyflow/react";
-import { LinkedEdge, type LinkedFlowEdge } from "./components/LinkedEdge.js";
+import type { Edge } from "@xyflow/react";
 import type { RequestRecord } from "@http-tracker/shared";
 import { useRequestFilters } from "./hooks/useRequestFilters.js";
 import { useRequestSelection } from "./hooks/useRequestSelection.js";
@@ -15,7 +15,6 @@ import { useTrackerToken } from "./hooks/useTrackerToken.js";
 import type { Orientation } from "./graph.js";
 
 const nodeTypes = { request: RequestNode };
-const edgeTypes = { linked: LinkedEdge };
 
 export function App() {
   const token = useTrackerToken();
@@ -52,14 +51,13 @@ export function App() {
       }),
     [nodes, groups, selected],
   );
-  const graphEdges = useMemo<LinkedFlowEdge[]>(
+  const graphEdges = useMemo<Edge[]>(
     () =>
       edges.map((e) => ({
         ...e,
-        type: "linked",
         animated: true,
-        markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
-        data: { gap: e.gap },
+        markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 },
+        style: { stroke: "#54a7ff", strokeWidth: 2 },
       })),
     [edges],
   );
@@ -100,7 +98,6 @@ export function App() {
             nodes={graphNodes}
             edges={graphEdges}
             nodeTypes={nodeTypes}
-            edgeTypes={edgeTypes}
             fitView
             onNodeClick={(_, node) => setSelectedId(node.id)}
           >

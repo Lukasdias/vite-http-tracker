@@ -42,8 +42,8 @@ export const METHOD_COLORS: Record<string, string> = {
   DELETE: "#ff6b6b",
 };
 export const OTHER_METHOD_COLOR = "#cfd3dc";
-export const X_GAP = 240;
-export const Y_GAP = 120;
+export const X_GAP = 300;
+export const Y_GAP = 180;
 export const DUPLICATE_WINDOW_MS = 200;
 
 export function methodColor(method: string): string {
