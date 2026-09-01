@@ -149,7 +149,7 @@ interface RequestRecord {
 
 Two layers, never inferred purely from timing:
 
-1. **Neutral grouping (agent + server):** group records with an identical `(method, url, requestHash-when-content)` signature, started within a tight window (`< 150 ms`), with no interleaving record of a different signature in between. Group members become a single visual node. **This layer never asserts a cause** — it only groups. Because it is neutral, a *real* duplicate (racing fetches, polling, refetch on dependency change) is still surfaced and inspectable rather than hidden as "expected".
+1. **Neutral grouping (server, using the agent-computed signature):** the agent computes `requestHash` + `seq`; the server groups records with an identical `(method, url, requestHash-when-content)` signature, started within a tight window (`< 150 ms`), with no interleaving record of a different signature in between. Group members become a single visual node. **This layer never asserts a cause** — it only groups. Because it is neutral, a *real* duplicate (racing fetches, polling, refetch on dependency change) is still surfaced and inspectable rather than hidden as "expected".
 2. **Strict-Mode attribution (build-time, authoritative):** only when `__HTTP_TRACKER_STRICT_MODE__` is true do we attach the `"likely Strict Mode (dev double-mount)"` label to grouped duplicates. The attribution is backed by source analysis, not response timing.
 
 **Canonical selection:** Strict Mode mounts→unmounts→remounts, so the **last** matching request in a group is the survivor. Keep the **last** as `canonical`; collapse the earlier ones as `duplicates`. (Both remain stored; `dupRole` marks which is which.)
@@ -185,6 +185,6 @@ Two layers, never inferred purely from timing:
 ## 10. Out of scope for this iteration
 
 - Response-body inspection parity with Devtools (see §3).
-- Per-component/attrission to React fibers.
+- Per-component attribution to React fibers.
 - Angular target (dropped; may be added later via manual import path).
 - Persistent history, replay, multi-user.
