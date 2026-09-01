@@ -1,5 +1,14 @@
-import { useMemo, useState } from "react";
-import { Background, Controls, MarkerType, ReactFlow } from "@xyflow/react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  Background,
+  Controls,
+  MarkerType,
+  ReactFlow,
+  ReactFlowProvider,
+  useEdgesState,
+  useNodesState,
+  useReactFlow,
+} from "@xyflow/react";
 import type { Edge } from "@xyflow/react";
 import type { RequestRecord } from "@http-tracker/shared";
 import { useRequestFilters } from "./hooks/useRequestFilters.js";
@@ -15,6 +24,48 @@ import { useTrackerToken } from "./hooks/useTrackerToken.js";
 import type { Orientation } from "./graph.js";
 
 const nodeTypes = { request: RequestNode };
+const EDGE_COLOR = "#54a7ff";
+
+function FlowCanvas({
+  nodes,
+  edges,
+  orientation,
+  onNodeClick,
+}: {
+  nodes: RequestFlowNode[];
+  edges: Edge[];
+  orientation: Orientation;
+  onNodeClick: (id: string) => void;
+}) {
+  const { fitView } = useReactFlow();
+  const [rfNodes, setRfNodes, onNodesChange] = useNodesState(nodes);
+  const [rfEdges, setRfEdges, onEdgesChange] = useEdgesState(edges);
+
+  useEffect(() => {
+    setRfNodes(nodes);
+    setRfEdges(edges);
+  }, [nodes, edges, setRfNodes, setRfEdges]);
+
+  useEffect(() => {
+    requestAnimationFrame(() => fitView({ padding: 0.2 }));
+  }, [orientation, fitView]);
+
+  return (
+    <ReactFlow
+      nodes={rfNodes}
+      edges={rfEdges}
+      onNodesChange={onNodesChange}
+      onEdgesChange={onEdgesChange}
+      nodeTypes={nodeTypes}
+      fitView
+      colorMode="dark"
+      onNodeClick={(_, node) => onNodeClick(node.id)}
+    >
+      <Background gap={24} size={1} />
+      <Controls className="!bottom-4 !left-4" />
+    </ReactFlow>
+  );
+}
 
 export function App() {
   const token = useTrackerToken();
@@ -51,13 +102,14 @@ export function App() {
       }),
     [nodes, groups, selected],
   );
+
   const graphEdges = useMemo<Edge[]>(
     () =>
       edges.map((e) => ({
         ...e,
         animated: true,
-        markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 },
-        style: { stroke: "#54a7ff", strokeWidth: 2 },
+        style: { stroke: EDGE_COLOR, strokeWidth: 2 },
+        markerEnd: { type: MarkerType.ArrowClosed, color: EDGE_COLOR },
       })),
     [edges],
   );
@@ -93,17 +145,14 @@ export function App() {
       />
       <div className="flex min-h-0 flex-1">
         <div className="min-w-0 flex-1">
-          <ReactFlow
-            key={orientation}
-            nodes={graphNodes}
-            edges={graphEdges}
-            nodeTypes={nodeTypes}
-            fitView
-            onNodeClick={(_, node) => setSelectedId(node.id)}
-          >
-            <Background gap={24} size={1} />
-            <Controls className="!bottom-4 !left-4" />
-          </ReactFlow>
+          <ReactFlowProvider>
+            <FlowCanvas
+              nodes={graphNodes}
+              edges={graphEdges}
+              orientation={orientation}
+              onNodeClick={setSelectedId}
+            />
+          </ReactFlowProvider>
         </div>
         <div className="hidden w-80 shrink-0 border-l border-base-300 md:block">
           <InspectPanel
