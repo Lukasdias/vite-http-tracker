@@ -20,6 +20,7 @@ export interface GraphEdge {
   id: string;
   source: string;
   target: string;
+  gap?: number;
 }
 
 export interface Graph {
@@ -179,7 +180,8 @@ export function buildGraph(
       const key = `${src}->${tgt}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      edges.push({ id: "e-" + key, source: src, target: tgt });
+      const gap = Math.max(0, Math.round(target.startTime - source.endTime));
+      edges.push({ id: "e-" + key, source: src, target: tgt, gap });
     }
   }
   return { nodes, edges };

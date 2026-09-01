@@ -9,3 +9,24 @@
   --font-sans: "IBM Plex Sans", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 }
+
+.linked-edge {
+  stroke-dasharray: 6;
+  animation: linkedDash 0.5s linear infinite;
+}
+@keyframes linkedDash {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+.edge-label {
+  position: absolute;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: #9aa3b2;
+  background: #12161f;
+  border: 1px solid #1d2430;
+  border-radius: 4px;
+  padding: 1px 4px;
+  pointer-events: none;
+}
