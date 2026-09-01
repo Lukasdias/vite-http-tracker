@@ -40,7 +40,7 @@ async function detectStrictMode(root: string): Promise<boolean> {
 }
 
 export function httpTracker(opts: HttpTrackerOptions = {}): Plugin {
-  const serverUrl = opts.serverUrl ?? "http://localhost:4000";
+  const serverUrl = opts.serverUrl;
   const token = opts.token ?? "dev";
   const autoInject = opts.autoInject ?? true;
   let strictMode = false;
@@ -56,10 +56,10 @@ export function httpTracker(opts: HttpTrackerOptions = {}): Plugin {
     },
     load(id) {
       if (id === RESOLVED_ID) {
-        return [
-          `import { initAgent } from "@http-tracker/agent";`,
-          `initAgent({ serverUrl: ${JSON.stringify(serverUrl)}, token: ${JSON.stringify(token)}, strictMode: ${strictMode} });`,
-        ].join("\n");
+        const args: string[] = [];
+        if (serverUrl) args.push(`serverUrl: ${JSON.stringify(serverUrl)}`);
+        args.push(`token: ${JSON.stringify(token)}`, `strictMode: ${strictMode}`);
+        return `import { initAgent } from "@http-tracker/agent";\ninitAgent({ ${args.join(", ")} });`;
       }
     },
     transformIndexHtml: {

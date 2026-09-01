@@ -10,9 +10,17 @@ export interface AgentOptions {
 }
 
 export function initAgent(opts: AgentOptions = {}): (() => void)[] {
-  const wsUrl =
-    (opts.serverUrl ?? DEFAULT_SERVER_URL).replace(/^http/, "ws").replace(/\/$/, "") + "/events";
-  const transport = new WsTransport({ url: wsUrl, token: opts.token ?? DEFAULT_TOKEN });
+  const token = opts.token ?? DEFAULT_TOKEN;
+  let base: string;
+  if (opts.serverUrl) {
+    base = opts.serverUrl.replace(/^http/, "ws").replace(/\/$/, "");
+  } else if (typeof window !== "undefined" && window.location && window.location.hostname) {
+    base = `ws://${window.location.hostname}:4000`;
+  } else {
+    base = DEFAULT_SERVER_URL.replace(/^http/, "ws").replace(/\/$/, "");
+  }
+  const wsUrl = `${base}/events?token=${encodeURIComponent(token)}`;
+  const transport = new WsTransport({ url: wsUrl, token });
   transport.connect();
   const restoreFetch = patchFetch({ enqueue: (r) => transport.enqueue(r) });
   const restoreXhr = patchXhr({ enqueue: (r) => transport.enqueue(r) });
