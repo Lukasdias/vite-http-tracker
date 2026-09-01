@@ -1,6 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import type { RequestRecord } from "@http-tracker/shared";
-import { buildGraph, filterRecords, methodColor, OTHER_METHOD_COLOR } from "./graph.js";
+import {
+  buildGraph,
+  filterGroups,
+  groupRecords,
+  matchesFilter,
+  methodColor,
+  statusClass,
+  OTHER_METHOD_COLOR,
+} from "./graph.js";
 
 const mk = (partial: Partial<RequestRecord>): RequestRecord => ({
   requestId: partial.requestId ?? "id",
@@ -11,6 +19,7 @@ const mk = (partial: Partial<RequestRecord>): RequestRecord => ({
   startTime: partial.startTime ?? 1,
   endTime: partial.endTime ?? 1,
   duration: partial.duration ?? 0,
+  strictMode: partial.strictMode ?? false,
 });
 
 describe("methodColor", () => {
@@ -21,44 +30,99 @@ describe("methodColor", () => {
   });
 });
 
-describe("filterRecords", () => {
+describe("statusClass", () => {
+  test("maps http status to a semantic class", () => {
+    expect(statusClass(200)).toBe("success");
+    expect(statusClass(304)).toBe("warning");
+    expect(statusClass(404)).toBe("error");
+    expect(statusClass(500)).toBe("error");
+  });
+});
+
+describe("matchesFilter", () => {
   const recs = [
     mk({ requestId: "a", method: "GET", url: "/users", status: 200 }),
     mk({ requestId: "b", method: "POST", url: "/users", status: 201 }),
     mk({ requestId: "c", method: "GET", url: "/orders", status: 404 }),
   ];
-  test("filters by method", () => {
-    expect(filterRecords(recs, { method: "GET" }).map((r) => r.requestId)).toEqual(["a", "c"]);
+  test("filters by method, status and url substring", () => {
+    expect(recs.filter((r) => matchesFilter(r, { method: "GET" })).map((r) => r.requestId)).toEqual(
+      ["a", "c"],
+    );
+    expect(recs.filter((r) => matchesFilter(r, { status: "404" })).map((r) => r.requestId)).toEqual(
+      ["c"],
+    );
+    expect(recs.filter((r) => matchesFilter(r, { url: "orders" })).map((r) => r.requestId)).toEqual(
+      ["c"],
+    );
+    expect(recs.filter((r) => matchesFilter(r, {})).length).toBe(3);
   });
-  test("filters by status", () => {
-    expect(filterRecords(recs, { status: "404" }).map((r) => r.requestId)).toEqual(["c"]);
+});
+
+describe("groupRecords", () => {
+  test("groups identical signatures within the window", () => {
+    const recs = [
+      mk({ requestId: "a", seq: 1, url: "/todos/1", startTime: 0, strictMode: true }),
+      mk({ requestId: "b", seq: 2, url: "/users/1", startTime: 1, strictMode: true }),
+      mk({ requestId: "c", seq: 3, url: "/todos/1", startTime: 2, strictMode: true }),
+      mk({ requestId: "d", seq: 4, url: "/users/1", startTime: 3, strictMode: true }),
+    ];
+    const groups = groupRecords(recs);
+    expect(groups.length).toBe(2);
+    const todos = groups.find((g) => g.canonical.url === "/todos/1")!;
+    expect(todos.members.length).toBe(2);
+    expect(todos.strictMode).toBe(true);
+    expect(todos.members.map((m) => m.requestId)).toEqual(["a", "c"]);
   });
-  test("filters by url substring", () => {
-    expect(filterRecords(recs, { url: "orders" }).map((r) => r.requestId)).toEqual(["c"]);
+
+  test("keeps cheap timing apart", () => {
+    const recs = [
+      mk({ requestId: "a", seq: 1, url: "/todos/1", startTime: 0 }),
+      mk({ requestId: "b", seq: 2, url: "/todos/1", startTime: 1000 }),
+    ];
+    expect(groupRecords(recs).length).toBe(2);
   });
-  test("empty filter returns all", () => {
-    expect(filterRecords(recs, {}).length).toBe(3);
+});
+
+describe("filterGroups", () => {
+  const groups = groupRecords([
+    mk({ requestId: "a", seq: 1, method: "GET", url: "/users", status: 200 }),
+    mk({ requestId: "b", seq: 2, method: "GET", url: "/orders", status: 404 }),
+  ]);
+  test("filters by canonical record", () => {
+    expect(filterGroups(groups, { status: "404" }).map((g) => g.canonical.requestId)).toEqual([
+      "b",
+    ]);
   });
 });
 
 describe("buildGraph", () => {
-  const recs = [
-    mk({ requestId: "a", seq: 2 }),
-    mk({ requestId: "b", seq: 1 }),
-    mk({ requestId: "c", seq: 3 }),
-  ];
-  test("orders nodes by seq and lays out left to right", () => {
-    const { nodes } = buildGraph(recs, false);
-    expect(nodes.map((n) => n.seq)).toEqual([1, 2, 3]);
+  const groups = groupRecords([
+    mk({ requestId: "a", seq: 2, url: "/b", strictMode: true }),
+    mk({ requestId: "b", seq: 1, url: "/a" }),
+    mk({ requestId: "c", seq: 3, url: "/b", strictMode: true }),
+  ]);
+  test("orders nodes by seq, collapsing duplicate groups, and lays out left-right", () => {
+    const { nodes, edges } = buildGraph(groups, true);
+    expect(nodes.length).toBe(2);
+    expect(nodes[0]!.id).toBe("b");
     expect(nodes[0]!.x).toBeLessThan(nodes[1]!.x);
-    expect(nodes[1]!.x).toBeLessThan(nodes[2]!.x);
-  });
-  test("produces sequence edges only when enabled", () => {
-    expect(buildGraph(recs, false).edges.length).toBe(0);
-    const edges = buildGraph(recs, true).edges;
-    expect(edges.length).toBe(2);
+    expect(nodes[0]!.dupCount).toBe(1);
+    expect(nodes[1]!.dupCount).toBe(2);
+    expect(nodes[1]!.strictMode).toBe(true);
+    expect(nodes[1]!.id).toBe("a");
+    expect(edges.length).toBe(1);
     expect(edges[0]!.source).toBe("b");
     expect(edges[0]!.target).toBe("a");
-    expect(edges[1]!.target).toBe("c");
+  });
+  test("vertical orientation stacks nodes on the y axis", () => {
+    const flat = [
+      mk({ requestId: "x", seq: 1, url: "/a" }),
+      mk({ requestId: "y", seq: 2, url: "/b" }),
+    ];
+    const { nodes } = buildGraph(groupRecords(flat), false, "vertical");
+    expect(nodes[0]!.x).toBe(0);
+    expect(nodes[1]!.x).toBe(0);
+    expect(nodes[0]!.y).toBeLessThan(nodes[1]!.y);
   });
 });

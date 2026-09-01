@@ -1,16 +1,26 @@
-import type { RecordFilter } from "../graph.js";
+import type { Orientation, RecordFilter } from "../graph.js";
 
 export interface FilterBarProps {
   filter: RecordFilter;
   onChange: (filter: RecordFilter) => void;
   showEdges: boolean;
   onShowEdges: (v: boolean) => void;
+  orientation: Orientation;
+  onOrientation: (o: Orientation) => void;
   onClear: () => void;
 }
 
 const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OTHER"];
 
-export function FilterBar({ filter, onChange, showEdges, onShowEdges, onClear }: FilterBarProps) {
+export function FilterBar({
+  filter,
+  onChange,
+  showEdges,
+  onShowEdges,
+  orientation,
+  onOrientation,
+  onClear,
+}: FilterBarProps) {
   return (
     <div className="flex items-end gap-2 p-3">
       <label className="form-control">
@@ -55,6 +65,24 @@ export function FilterBar({ filter, onChange, showEdges, onShowEdges, onClear }:
         />
         <span className="text-xs text-base-content/70">Sequence edges</span>
       </label>
+      <div className="join">
+        <button
+          type="button"
+          className={`btn btn-sm join-item ${orientation === "horizontal" ? "btn-active" : ""}`}
+          onClick={() => onOrientation("horizontal")}
+          aria-label="Horizontal orientation"
+        >
+          →
+        </button>
+        <button
+          type="button"
+          className={`btn btn-sm join-item ${orientation === "vertical" ? "btn-active" : ""}`}
+          onClick={() => onOrientation("vertical")}
+          aria-label="Vertical orientation"
+        >
+          ↓
+        </button>
+      </div>
       <button type="button" className="btn btn-sm" onClick={onClear}>
         Clear
       </button>

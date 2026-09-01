@@ -1,10 +1,17 @@
 import type { RequestRecord } from "@http-tracker/shared";
-import { methodColor } from "../graph.js";
+import { methodColor, statusClass, type RecordGroup } from "../graph.js";
 
 export interface InspectPanelProps {
+  group: RecordGroup | null;
   record: RequestRecord | null;
   onClose: () => void;
 }
+
+const statusBadge = {
+  success: "badge-success",
+  warning: "badge-warning",
+  error: "badge-error",
+} as const;
 
 function headersTable(headers: Record<string, string>) {
   const entries = Object.entries(headers);
@@ -28,7 +35,7 @@ function headersTable(headers: Record<string, string>) {
   );
 }
 
-export function InspectPanel({ record, onClose }: InspectPanelProps) {
+export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
   if (!record) {
     return (
       <aside className="flex h-full items-center justify-center text-sm text-base-content/50">
@@ -36,6 +43,10 @@ export function InspectPanel({ record, onClose }: InspectPanelProps) {
       </aside>
     );
   }
+
+  const members = group?.members ?? [record];
+  const isGroup = members.length > 1;
+
   return (
     <aside className="h-full overflow-y-auto">
       <header className="flex items-start justify-between gap-2 border-b border-base-300 p-3">
@@ -44,19 +55,45 @@ export function InspectPanel({ record, onClose }: InspectPanelProps) {
             {record.method} <span className="font-normal">{record.url}</span>
           </div>
           <div className="mt-1 text-xs text-base-content/70">
-            Status {record.status} · {record.duration}ms
+            Status {record.status} · {record.duration}ms · {record.bodySizeBytes ?? 0} B
           </div>
+          {isGroup && (
+            <div className="badge badge-outline badge-sm mt-2 text-warning">
+              ×{members.length} duplicate{members.length > 1 ? "s" : ""}
+              {group?.strictMode ? " · Strict Mode" : ""}
+            </div>
+          )}
         </div>
         <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close">
           ×
         </button>
       </header>
-      <section className="border-b border-base-300 p-3">
-        <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-base-content/60">
-          Timing
-        </h3>
-        <p className="text-xs mono">Started {new Date(record.startTime).toLocaleTimeString()}</p>
-      </section>
+
+      {isGroup && (
+        <section className="border-b border-base-300 p-3">
+          <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-base-content/60">
+            Duplicate requests
+          </h3>
+          <ul className="space-y-1">
+            {members.map((m, i) => (
+              <li
+                key={m.requestId}
+                className="rounded-box border border-base-300 bg-base-200 px-2 py-1.5 text-xs"
+              >
+                <span className="font-mono text-base-content/60">#{i + 1}</span>{" "}
+                <span className={`badge badge-xs ${statusBadge[statusClass(m.status)]}`}>
+                  {m.status}
+                </span>{" "}
+                <span className="mono text-base-content/70">{m.duration}ms</span>
+                <span className="float-right text-[10px] text-base-content/50">
+                  {new Date(m.startTime).toLocaleTimeString()}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
       <section className="border-b border-base-300 p-3">
         <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-base-content/60">
           Request headers

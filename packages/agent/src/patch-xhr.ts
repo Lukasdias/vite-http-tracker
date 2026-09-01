@@ -6,7 +6,7 @@ interface XhrSink {
   enqueue(r: RequestRecord): void;
 }
 
-export function patchXhr(sink: XhrSink): () => void {
+export function patchXhr(sink: XhrSink, strictMode = false): () => void {
   const Original = window.XMLHttpRequest;
   let seqCounter = 0;
   const Patched = class extends Original {
@@ -44,6 +44,7 @@ export function patchXhr(sink: XhrSink): () => void {
           bodyTruncated: pending.truncated,
           bodySizeBytes: (this.responseText ?? "").length,
           requestHash: hashRequest(this.method, this.url, pending.body),
+          strictMode,
         };
         sink.enqueue(record);
       });

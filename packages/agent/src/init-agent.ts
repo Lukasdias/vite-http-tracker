@@ -22,7 +22,8 @@ export function initAgent(opts: AgentOptions = {}): (() => void)[] {
   const wsUrl = `${base}/events?token=${encodeURIComponent(token)}`;
   const transport = new WsTransport({ url: wsUrl, token });
   transport.connect();
-  const restoreFetch = patchFetch({ enqueue: (r) => transport.enqueue(r) });
-  const restoreXhr = patchXhr({ enqueue: (r) => transport.enqueue(r) });
+  const strictMode = opts.strictMode ?? false;
+  const restoreFetch = patchFetch({ enqueue: (r) => transport.enqueue(r) }, strictMode);
+  const restoreXhr = patchXhr({ enqueue: (r) => transport.enqueue(r) }, strictMode);
   return [restoreFetch, restoreXhr];
 }

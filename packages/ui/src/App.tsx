@@ -12,6 +12,7 @@ import { RequestNode, type RequestFlowNode } from "./components/RequestNode.js";
 import { FilterBar } from "./components/FilterBar.js";
 import { InspectPanel } from "./components/InspectPanel.js";
 import { useTrackerToken } from "./hooks/useTrackerToken.js";
+import type { Orientation } from "./graph.js";
 
 const nodeTypes = { request: RequestNode };
 
@@ -25,22 +26,36 @@ export function App() {
   const { connected, send } = useTrackerConnection(wsUrl);
   const [filter, setFilter] = useRequestFilters();
   const [showEdges, setShowEdges] = useState(false);
+  const [orientation, setOrientation] = useState<Orientation>("horizontal");
   const [selectedId, setSelectedId] = useRequestSelection();
-  const { filtered, nodes, edges } = useGraph(filter, showEdges);
+  const { groups, nodes, edges } = useGraph(filter, showEdges, orientation);
   const selected = useRequest(selectedId);
   const clear = useClearRequests(send);
 
   const graphNodes = useMemo<RequestFlowNode[]>(
     () =>
-      nodes.map((n) => ({
-        id: n.id,
-        type: "request",
-        position: { x: n.x, y: n.y },
-        data: { record: filtered.find((r) => r.requestId === n.id) as RequestRecord },
-      })),
-    [nodes, filtered],
+      nodes.map((n) => {
+        const group = groups.find((g) => g.canonical.requestId === n.id);
+        return {
+          id: n.id,
+          type: "request",
+          position: { x: n.x, y: n.y },
+          data: {
+            record: (group?.canonical ?? selected) as RequestRecord,
+            dupCount: n.dupCount,
+            strictMode: n.strictMode,
+            memberIds: n.memberIds,
+          },
+        };
+      }),
+    [nodes, groups, selected],
   );
   const graphEdges = useMemo<Edge[]>(() => edges.map((e) => ({ ...e, animated: true })), [edges]);
+
+  const selectedGroup = useMemo(
+    () => groups.find((g) => g.canonical.requestId === selectedId) ?? null,
+    [groups, selectedId],
+  );
 
   return (
     <div className="flex h-screen flex-col bg-base-100 text-base-content">
@@ -62,11 +77,14 @@ export function App() {
         onChange={setFilter}
         showEdges={showEdges}
         onShowEdges={setShowEdges}
+        orientation={orientation}
+        onOrientation={setOrientation}
         onClear={() => clear.mutate(token)}
       />
       <div className="flex min-h-0 flex-1">
         <div className="min-w-0 flex-1">
           <ReactFlow
+            key={orientation}
             nodes={graphNodes}
             edges={graphEdges}
             nodeTypes={nodeTypes}
@@ -78,7 +96,11 @@ export function App() {
           </ReactFlow>
         </div>
         <div className="hidden w-80 shrink-0 border-l border-base-300 md:block">
-          <InspectPanel record={selected} onClose={() => setSelectedId(null)} />
+          <InspectPanel
+            group={selectedGroup}
+            record={selected}
+            onClose={() => setSelectedId(null)}
+          />
         </div>
       </div>
     </div>

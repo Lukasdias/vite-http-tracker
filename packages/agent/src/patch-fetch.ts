@@ -8,7 +8,7 @@ interface FetchSink {
   enqueue(r: RequestRecord): void;
 }
 
-export function patchFetch(sink: FetchSink): () => void {
+export function patchFetch(sink: FetchSink, strictMode = false): () => void {
   const original = window.fetch;
   const wrapped = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const method = (init?.method ?? "GET").toUpperCase();
@@ -60,6 +60,7 @@ export function patchFetch(sink: FetchSink): () => void {
         streaming,
         bodySizeBytes: responseBody ? responseBody.length : Number(bodySize ?? 0) || 0,
         requestHash,
+        strictMode,
       };
       sink.enqueue(record);
       return res;
