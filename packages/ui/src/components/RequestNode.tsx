@@ -1,7 +1,7 @@
 import type { Node, NodeProps } from "@xyflow/react";
 import { Handle, Position } from "@xyflow/react";
 import type { RequestRecord } from "@http-tracker/shared";
-import { methodColor, statusClass } from "../graph.js";
+import { methodColor, statusClass, type Orientation } from "../graph.js";
 
 export interface RequestNodeData extends Record<string, unknown> {
   record: RequestRecord;
@@ -9,6 +9,7 @@ export interface RequestNodeData extends Record<string, unknown> {
   strictMode: boolean;
   memberIds: string[];
   batchSize?: number;
+  orientation?: Orientation;
 }
 
 export type RequestFlowNode = Node<RequestNodeData, "request">;
@@ -26,14 +27,16 @@ function formatBytes(bytes: number): string {
 }
 
 export function RequestNode({ data }: NodeProps<RequestFlowNode>) {
-  const { record, dupCount, strictMode, batchSize } = data;
+  const { record, dupCount, strictMode, batchSize, orientation } = data;
   const isBatch = (batchSize ?? 0) > 1;
+  const targetHandle = orientation === "vertical" ? Position.Top : Position.Left;
+  const sourceHandle = orientation === "vertical" ? Position.Bottom : Position.Right;
 
   return (
     <div
       className={`min-w-48 rounded-box border bg-base-200 p-2 shadow ${isBatch ? "border-dashed border-warning/60" : "border-base-300"}`}
     >
-      <Handle type="target" position={Position.Left} />
+      <Handle type="target" position={targetHandle} />{" "}
       <div className="flex items-center gap-2">
         <span
           className="rounded px-1.5 py-0.5 text-xs font-semibold"
@@ -65,7 +68,7 @@ export function RequestNode({ data }: NodeProps<RequestFlowNode>) {
           likely strict mode
         </div>
       )}
-      <Handle type="source" position={Position.Right} />
+      <Handle type="source" position={sourceHandle} />
     </div>
   );
 }

@@ -97,10 +97,11 @@ export function App() {
             strictMode: n.strictMode,
             memberIds: n.memberIds,
             batchSize: n.batchSize,
+            orientation,
           },
         };
       }),
-    [nodes, groups, selected],
+    [nodes, groups, selected, orientation],
   );
 
   const graphEdges = useMemo<Edge[]>(
