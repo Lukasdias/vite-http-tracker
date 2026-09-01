@@ -2,7 +2,9 @@ import { type RequestRecord } from "@http-tracker/shared";
 import { hashRequest, newId, parseHeaders, serializeBody } from "./capture.js";
 import { redactHeaders, redactString } from "./redact.js";
 
-interface XhrSink { enqueue(r: RequestRecord): void }
+interface XhrSink {
+  enqueue(r: RequestRecord): void;
+}
 
 export function patchXhr(sink: XhrSink): () => void {
   const Original = window.XMLHttpRequest;
@@ -34,7 +36,9 @@ export function patchXhr(sink: XhrSink): () => void {
           endTime: end,
           duration: end - this.start,
           requestHeaders: {},
-          responseHeaders: redactHeaders(parseHeaders(new Headers(this.getAllResponseHeaders() as unknown as HeadersInit))),
+          responseHeaders: redactHeaders(
+            parseHeaders(new Headers(this.getAllResponseHeaders() as unknown as HeadersInit)),
+          ),
           requestBody: pending.body ? redactString(pending.body) : undefined,
           responseBody: redactString(String(this.responseText ?? "")),
           bodyTruncated: pending.truncated,
@@ -48,5 +52,7 @@ export function patchXhr(sink: XhrSink): () => void {
   } as unknown as typeof XMLHttpRequest;
 
   window.XMLHttpRequest = Patched;
-  return () => { window.XMLHttpRequest = Original; };
+  return () => {
+    window.XMLHttpRequest = Original;
+  };
 }

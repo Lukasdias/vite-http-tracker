@@ -12,13 +12,21 @@ class FakeSocket {
   onclose: (() => void) | null = null;
   onerror: ((ev: unknown) => void) | null = null;
   closeCalls = 0;
-  close() { this.closeCalls++; }
-  send(data: string) { this.sent.push(data); }
+  close() {
+    this.closeCalls++;
+  }
+  send(data: string) {
+    this.sent.push(data);
+  }
 }
 
 const RealWebSocket = globalThis.WebSocket;
-beforeAll(() => { globalThis.WebSocket = FakeSocket as unknown as typeof WebSocket; });
-afterAll(() => { globalThis.WebSocket = RealWebSocket; });
+beforeAll(() => {
+  globalThis.WebSocket = FakeSocket as unknown as typeof WebSocket;
+});
+afterAll(() => {
+  globalThis.WebSocket = RealWebSocket;
+});
 
 const makeOpts = () => ({ url: "ws://localhost:4000", token: "dev" });
 

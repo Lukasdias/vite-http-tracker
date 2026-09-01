@@ -6,6 +6,10 @@ describe("cli parseArgs", () => {
     expect(parseArgs([])).toEqual({ port: 4000, token: "dev", open: true });
   });
   test("overrides", () => {
-    expect(parseArgs(["--port", "5000", "--token", "abc", "--no-open"])).toEqual({ port: 5000, token: "abc", open: false });
+    expect(parseArgs(["--port", "5000", "--token", "abc", "--no-open"])).toEqual({
+      port: 5000,
+      token: "abc",
+      open: false,
+    });
   });
 });

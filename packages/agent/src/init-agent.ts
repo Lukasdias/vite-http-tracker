@@ -10,7 +10,8 @@ export interface AgentOptions {
 }
 
 export function initAgent(opts: AgentOptions = {}): (() => void)[] {
-  const wsUrl = (opts.serverUrl ?? DEFAULT_SERVER_URL).replace(/^http/, "ws").replace(/\/$/, "") + "/events";
+  const wsUrl =
+    (opts.serverUrl ?? DEFAULT_SERVER_URL).replace(/^http/, "ws").replace(/\/$/, "") + "/events";
   const transport = new WsTransport({ url: wsUrl, token: opts.token ?? DEFAULT_TOKEN });
   transport.connect();
   const restoreFetch = patchFetch({ enqueue: (r) => transport.enqueue(r) });

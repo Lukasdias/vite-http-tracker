@@ -10,7 +10,9 @@ beforeAll(async () => {
   base = `http://127.0.0.1:${srv.port}`;
   wsUrl = `ws://127.0.0.1:${srv.port}/ws?token=dev`;
 });
-afterAll(async () => { if (srv) await srv.close(); });
+afterAll(async () => {
+  if (srv) await srv.close();
+});
 
 function connect(): Promise<WebSocket> {
   return new Promise((resolve, reject) => {
@@ -42,7 +44,21 @@ describe("e2e", () => {
     await fetch(base + "/events", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ token: "dev", records: [{ requestId: "x", seq: 100, method: "GET", url: "/e2e", status: 200, startTime: 1, endTime: 1, duration: 0 }] }),
+      body: JSON.stringify({
+        token: "dev",
+        records: [
+          {
+            requestId: "x",
+            seq: 100,
+            method: "GET",
+            url: "/e2e",
+            status: 200,
+            startTime: 1,
+            endTime: 1,
+            duration: 0,
+          },
+        ],
+      }),
     });
     const m = await seen;
     expect((m.records as Array<{ url: string }>)[0]?.url).toBe("/e2e");

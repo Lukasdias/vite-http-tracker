@@ -1,7 +1,8 @@
 import { DEFAULT_BODY_CAP } from "@http-tracker/shared";
 
 export function newId(): string {
-  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") return crypto.randomUUID();
+  if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
+    return crypto.randomUUID();
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
 }
 
@@ -48,7 +49,9 @@ export function hashRequest(method: string, url: string, body?: string): string 
 export function parseHeaders(headers: Headers | Record<string, string>): Record<string, string> {
   if (headers instanceof Headers) {
     const out: Record<string, string> = {};
-    headers.forEach((v, k) => { out[k] = v; });
+    headers.forEach((v, k) => {
+      out[k] = v;
+    });
     return out;
   }
   return { ...headers };

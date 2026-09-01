@@ -3,8 +3,12 @@ import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
 import { patchFetch } from "./patch-fetch.js";
 
-beforeAll(() => { GlobalRegistrator.register(); });
-afterAll(() => { GlobalRegistrator.unregister(); });
+beforeAll(() => {
+  GlobalRegistrator.register();
+});
+afterAll(() => {
+  GlobalRegistrator.unregister();
+});
 
 describe("patchFetch", () => {
   test("patches window.fetch and restores", () => {
@@ -17,7 +21,10 @@ describe("patchFetch", () => {
   });
   test("emits a record when a fetch resolves", async () => {
     const captured: unknown[] = [];
-    const res = new Response(JSON.stringify({ ok: true }), { status: 200, headers: { "content-type": "application/json" } });
+    const res = new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "content-type": "application/json" },
+    });
     window.fetch = (async () => res) as unknown as typeof window.fetch;
     const restore = patchFetch({ enqueue: (r: unknown) => captured.push(r) } as never);
     await window.fetch("/api/x");

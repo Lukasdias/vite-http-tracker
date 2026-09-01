@@ -1,10 +1,18 @@
 import { describe, expect, test } from "bun:test";
 import { RequestStore } from "./store.js";
 
-const mk = (seq: number, size: number) => ({
-  requestId: String(seq), seq, method: "GET", url: `u${seq}`, status: 200,
-  startTime: 1, endTime: 1, duration: 0, bodySizeBytes: size,
-}) as never;
+const mk = (seq: number, size: number) =>
+  ({
+    requestId: String(seq),
+    seq,
+    method: "GET",
+    url: `u${seq}`,
+    status: 200,
+    startTime: 1,
+    endTime: 1,
+    duration: 0,
+    bodySizeBytes: size,
+  }) as never;
 
 describe("RequestStore", () => {
   test("adds and snapshots in insertion order", () => {

@@ -4,13 +4,16 @@ import { redactHeaders, redactString } from "./redact.js";
 
 let seqCounter = 0;
 
-interface FetchSink { enqueue(r: RequestRecord): void }
+interface FetchSink {
+  enqueue(r: RequestRecord): void;
+}
 
 export function patchFetch(sink: FetchSink): () => void {
   const original = window.fetch;
   const wrapped = (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
     const method = (init?.method ?? "GET").toUpperCase();
-    const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+    const url =
+      typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
     const startTime = Date.now();
     const bodyResult = serializeBody(init?.body);
     const requestHash = hashRequest(method, url, bodyResult.body);
@@ -31,7 +34,10 @@ export function patchFetch(sink: FetchSink): () => void {
           truncated = true;
         } else if (res.body) {
           responseBody = String(await res.clone().text());
-          if (responseBody.length > DEFAULT_BODY_CAP) { responseBody = undefined; truncated = true; }
+          if (responseBody.length > DEFAULT_BODY_CAP) {
+            responseBody = undefined;
+            truncated = true;
+          }
         }
       } catch {
         opaque = true;
@@ -60,5 +66,7 @@ export function patchFetch(sink: FetchSink): () => void {
     });
   };
   window.fetch = wrapped as typeof window.fetch;
-  return () => { window.fetch = original; };
+  return () => {
+    window.fetch = original;
+  };
 }

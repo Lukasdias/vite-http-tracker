@@ -7,12 +7,16 @@
     "test": "bun test",
     "dev:server": "bun run packages/server/src/cli.ts",
     "build": "bun run build --filter=*",
-    "build:ui": "bun run --cwd packages/ui build"
+    "build:ui": "bun run --cwd packages/ui build",
+    "lint": "oxlint packages apps",
+    "format": "oxfmt --write packages apps"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^15.0.0",
     "@types/bun": "latest",
     "happy-dom": "^15.0.0",
+    "oxfmt": "^0.66.0",
+    "oxlint": "^1.81.0",
     "typescript": "^5.5.0"
   }
 }

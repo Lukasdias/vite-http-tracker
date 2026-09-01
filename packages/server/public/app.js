@@ -12,11 +12,21 @@ ws.onmessage = (ev) => {
 
 function render(r) {
   const tr = document.createElement("tr");
-  const mk = (x) => { const t = document.createElement("td"); t.textContent = x; return t; };
+  const mk = (x) => {
+    const t = document.createElement("td");
+    t.textContent = x;
+    return t;
+  };
   const m = document.createElement("td");
   m.className = "m " + (["GET", "POST", "PUT", "DELETE"].includes(r.method) ? r.method : "OTHER");
   m.textContent = r.method;
-  tr.append(mk(new Date(r.startTime).toLocaleTimeString()), m, mk(r.url), mk(String(r.status)), mk(String(r.duration)));
+  tr.append(
+    mk(new Date(r.startTime).toLocaleTimeString()),
+    m,
+    mk(r.url),
+    mk(String(r.status)),
+    mk(String(r.duration)),
+  );
   rows.append(tr);
 }
 

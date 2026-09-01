@@ -1,4 +1,9 @@
-import { DEFAULT_RING_BUFFER_SIZE, DEFAULT_TOKEN, DEFAULT_WS_URL, type RequestRecord } from "@http-tracker/shared";
+import {
+  DEFAULT_RING_BUFFER_SIZE,
+  DEFAULT_TOKEN,
+  DEFAULT_WS_URL,
+  type RequestRecord,
+} from "@http-tracker/shared";
 
 export interface TransportOptions {
   url?: string;
@@ -31,7 +36,11 @@ export class WsTransport {
   }
 
   connect(): void {
-    if (this.socket && (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)) return;
+    if (
+      this.socket &&
+      (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)
+    )
+      return;
     const sock = new WebSocket(this.url);
     this.socket = sock;
     sock.onopen = () => this.flush();
@@ -55,7 +64,8 @@ export class WsTransport {
   }
 
   private flush(): void {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN || this.buffer.length === 0) return;
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN || this.buffer.length === 0)
+      return;
     this.socket.send(JSON.stringify({ type: "records", token: this.token, records: this.buffer }));
   }
 

@@ -1,4 +1,8 @@
-export interface CliArgs { port: number; token: string; open: boolean }
+export interface CliArgs {
+  port: number;
+  token: string;
+  open: boolean;
+}
 
 export function parseArgs(argv: string[]): CliArgs {
   let port = 4000;
@@ -24,7 +28,8 @@ async function main(): Promise<void> {
   const url = `http://127.0.0.1:${bound}/?token=${token}`;
   console.log(`http-tracker listening at ${url}`);
   if (open) {
-    const cmd = process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
+    const cmd =
+      process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";
     Bun.spawn([cmd, url]);
   }
 }

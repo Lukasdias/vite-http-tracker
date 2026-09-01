@@ -1,6 +1,8 @@
 import { DEFAULT_STORE_BYTE_CAP, type RequestRecord } from "@http-tracker/shared";
 
-export interface StoreOptions { byteCap?: number }
+export interface StoreOptions {
+  byteCap?: number;
+}
 
 export class RequestStore {
   private records = new Map<number, RequestRecord>();
@@ -33,8 +35,12 @@ export class RequestStore {
     this.bytes = 0;
   }
 
-  count(): number { return this.records.size; }
-  get sizeInBytes(): number { return this.bytes; }
+  count(): number {
+    return this.records.size;
+  }
+  get sizeInBytes(): number {
+    return this.bytes;
+  }
 
   private sizeOf(r: RequestRecord): number {
     return (r.bodySizeBytes ?? 0) + (r.responseBody?.length ?? 0);

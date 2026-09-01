@@ -38,6 +38,8 @@ describe("hashRequest", () => {
     expect(hashRequest("GET", "https://a/b")).not.toBe(hashRequest("GET", "https://a/c"));
   });
   test("includes body", () => {
-    expect(hashRequest("POST", "https://a/b", '{"x":1}')).not.toBe(hashRequest("POST", "https://a/b", '{"x":2}'));
+    expect(hashRequest("POST", "https://a/b", '{"x":1}')).not.toBe(
+      hashRequest("POST", "https://a/b", '{"x":2}'),
+    );
   });
 });
