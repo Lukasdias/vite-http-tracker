@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { hashRequest, parseHeaders, serializeBody } from "./capture.js";
+import { batchFor, hashRequest, parseHeaders, serializeBody } from "./capture.js";
 
 describe("serializeBody", () => {
   test("serializes JSON", () => {
@@ -29,6 +29,17 @@ describe("parseHeaders", () => {
   });
   test("passes through plain object", () => {
     expect(parseHeaders({ A: "1" })).toEqual({ A: "1" });
+  });
+});
+
+describe("batchFor", () => {
+  test("groups requests started within the turn window", () => {
+    const a = batchFor(1000);
+    expect(batchFor(1001)).toBe(a);
+  });
+  test("separates requests started far apart", () => {
+    const a = batchFor(1000);
+    expect(batchFor(2000)).not.toBe(a);
   });
 });
 

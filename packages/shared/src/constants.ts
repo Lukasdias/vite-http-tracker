@@ -7,6 +7,7 @@ export const DEFAULT_SERVER_URL = "http://localhost:4000";
 export const DEFAULT_WS_URL = "ws://localhost:4000/events";
 export const REDACTED_VALUE = "[REDACTED]";
 export const DEDUP_WINDOW_MS = 150;
+export const BATCH_WINDOW_MS = 2;
 export const SENSITIVE_FIELDS = [
   "authorization",
   "cookie",

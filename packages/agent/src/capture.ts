@@ -1,9 +1,21 @@
-import { DEFAULT_BODY_CAP } from "@http-tracker/shared";
+import { DEFAULT_BODY_CAP, BATCH_WINDOW_MS } from "@http-tracker/shared";
 
 export function newId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")
     return crypto.randomUUID();
   return Math.random().toString(36).slice(2) + Date.now().toString(36);
+}
+
+let lastBatchStart = 0;
+let currentBatchId = "";
+
+export function batchFor(startTime: number, windowMs = BATCH_WINDOW_MS): string {
+  if (startTime >= lastBatchStart && startTime - lastBatchStart <= windowMs) {
+    return currentBatchId;
+  }
+  lastBatchStart = startTime;
+  currentBatchId = newId();
+  return currentBatchId;
 }
 
 export interface BodyResult {

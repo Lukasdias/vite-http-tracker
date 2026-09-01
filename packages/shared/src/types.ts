@@ -18,4 +18,5 @@ export interface RequestRecord {
   bodySizeBytes?: number;
   requestHash?: string;
   strictMode?: boolean;
+  batchId?: string;
 }

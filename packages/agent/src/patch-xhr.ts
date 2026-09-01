@@ -1,5 +1,5 @@
 import { type RequestRecord } from "@http-tracker/shared";
-import { hashRequest, newId, parseHeaders, serializeBody } from "./capture.js";
+import { batchFor, hashRequest, newId, parseHeaders, serializeBody } from "./capture.js";
 import { redactHeaders, redactString } from "./redact.js";
 
 interface XhrSink {
@@ -45,6 +45,7 @@ export function patchXhr(sink: XhrSink, strictMode = false): () => void {
           bodySizeBytes: (this.responseText ?? "").length,
           requestHash: hashRequest(this.method, this.url, pending.body),
           strictMode,
+          batchId: batchFor(this.start),
         };
         sink.enqueue(record);
       });

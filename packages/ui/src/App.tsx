@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Background, Controls, ReactFlow } from "@xyflow/react";
+import { Background, Controls, MarkerType, ReactFlow } from "@xyflow/react";
 import type { Edge } from "@xyflow/react";
 import type { RequestRecord } from "@http-tracker/shared";
 import { useRequestFilters } from "./hooks/useRequestFilters.js";
@@ -45,12 +45,21 @@ export function App() {
             dupCount: n.dupCount,
             strictMode: n.strictMode,
             memberIds: n.memberIds,
+            batchSize: n.batchSize,
           },
         };
       }),
     [nodes, groups, selected],
   );
-  const graphEdges = useMemo<Edge[]>(() => edges.map((e) => ({ ...e, animated: true })), [edges]);
+  const graphEdges = useMemo<Edge[]>(
+    () =>
+      edges.map((e) => ({
+        ...e,
+        animated: true,
+        markerEnd: { type: MarkerType.ArrowClosed, width: 18, height: 18 },
+      })),
+    [edges],
+  );
 
   const selectedGroup = useMemo(
     () => groups.find((g) => g.canonical.requestId === selectedId) ?? null,

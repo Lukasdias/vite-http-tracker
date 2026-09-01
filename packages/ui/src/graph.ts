@@ -12,6 +12,8 @@ export interface GraphNode {
   dupCount: number;
   strictMode: boolean;
   memberIds: string[];
+  batchId?: string;
+  batchSize?: number;
 }
 
 export interface GraphEdge {
@@ -42,6 +44,7 @@ export const OTHER_METHOD_COLOR = "#cfd3dc";
 export const X_GAP = 240;
 export const Y_GAP = 120;
 export const DUPLICATE_WINDOW_MS = 200;
+export const CAUSAL_WINDOW_MS = 100;
 
 export function methodColor(method: string): string {
   return METHOD_COLORS[method.toUpperCase()] ?? OTHER_METHOD_COLOR;
@@ -112,12 +115,38 @@ export function filterGroups(groups: RecordGroup[], f: RecordFilter): RecordGrou
 
 export type Orientation = "horizontal" | "vertical";
 
+export function inferCausalRecordLinks(
+  records: RequestRecord[],
+  windowMs = CAUSAL_WINDOW_MS,
+): Array<[RequestRecord, RequestRecord]> {
+  const sorted = [...records].sort((a, b) => a.startTime - b.startTime || a.seq - b.seq);
+  const links: Array<[RequestRecord, RequestRecord]> = [];
+  for (const current of sorted) {
+    let best: { record: RequestRecord; gap: number } | null = null;
+    for (const candidate of sorted) {
+      if (candidate.requestId === current.requestId) continue;
+      if (candidate.endTime > current.startTime) continue;
+      const gap = current.startTime - candidate.endTime;
+      if (gap <= windowMs && (!best || gap < best.gap)) {
+        best = { record: candidate, gap };
+      }
+    }
+    if (best) links.push([best.record, current]);
+  }
+  return links;
+}
+
 export function buildGraph(
   groups: RecordGroup[],
   showEdges: boolean,
   orientation: Orientation = "horizontal",
 ): Graph {
   const sorted = [...groups].sort((a, b) => a.canonical.seq - b.canonical.seq);
+  const batchSizes = new Map<string, number>();
+  for (const g of sorted) {
+    const id = g.canonical.batchId;
+    if (id) batchSizes.set(id, (batchSizes.get(id) ?? 0) + 1);
+  }
   const nodes: GraphNode[] = sorted.map((g, i) => ({
     id: g.canonical.requestId,
     seq: g.canonical.seq,
@@ -130,13 +159,27 @@ export function buildGraph(
     dupCount: g.members.length,
     strictMode: g.strictMode,
     memberIds: g.members.map((m) => m.requestId),
+    batchId: g.canonical.batchId,
+    batchSize: g.canonical.batchId ? (batchSizes.get(g.canonical.batchId) ?? 0) : 0,
   }));
   const edges: GraphEdge[] = [];
   if (showEdges) {
-    for (let i = 1; i < sorted.length; i++) {
-      const prev = nodes[i - 1];
-      const cur = nodes[i];
-      if (prev && cur) edges.push({ id: "e" + i, source: prev.id, target: cur.id });
+    const groupByMember = new Map<string, RecordGroup>();
+    for (const group of groups)
+      for (const member of group.members) groupByMember.set(member.requestId, group);
+    const allRecords = groups.flatMap((g) => g.members);
+    const seen = new Set<string>();
+    for (const [source, target] of inferCausalRecordLinks(allRecords)) {
+      const sourceGroup = groupByMember.get(source.requestId);
+      const targetGroup = groupByMember.get(target.requestId);
+      if (!sourceGroup || !targetGroup) continue;
+      const src = sourceGroup.canonical.requestId;
+      const tgt = targetGroup.canonical.requestId;
+      if (src === tgt) continue;
+      const key = `${src}->${tgt}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      edges.push({ id: "e-" + key, source: src, target: tgt });
     }
   }
   return { nodes, edges };

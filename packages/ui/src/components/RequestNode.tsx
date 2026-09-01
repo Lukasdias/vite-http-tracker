@@ -8,6 +8,7 @@ export interface RequestNodeData extends Record<string, unknown> {
   dupCount: number;
   strictMode: boolean;
   memberIds: string[];
+  batchSize?: number;
 }
 
 export type RequestFlowNode = Node<RequestNodeData, "request">;
@@ -25,10 +26,13 @@ function formatBytes(bytes: number): string {
 }
 
 export function RequestNode({ data }: NodeProps<RequestFlowNode>) {
-  const { record, dupCount, strictMode } = data;
+  const { record, dupCount, strictMode, batchSize } = data;
+  const isBatch = (batchSize ?? 0) > 1;
 
   return (
-    <div className="min-w-48 rounded-box border border-base-300 bg-base-200 p-2 shadow">
+    <div
+      className={`min-w-48 rounded-box border bg-base-200 p-2 shadow ${isBatch ? "border-dashed border-warning/60" : "border-base-300"}`}
+    >
       <Handle type="target" position={Position.Left} />
       <div className="flex items-center gap-2">
         <span
@@ -45,6 +49,9 @@ export function RequestNode({ data }: NodeProps<RequestFlowNode>) {
         </span>
         {dupCount > 1 && (
           <span className="badge badge-outline badge-sm text-base-content/70">×{dupCount}</span>
+        )}
+        {isBatch && (
+          <span className="badge badge-outline badge-sm text-warning">⚡×{batchSize}</span>
         )}
       </div>
       <div className="mt-1 max-w-56 truncate text-xs mono">{record.url}</div>

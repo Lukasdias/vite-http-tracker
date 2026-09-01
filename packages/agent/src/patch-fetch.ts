@@ -1,5 +1,5 @@
 import { type RequestRecord, DEFAULT_BODY_CAP } from "@http-tracker/shared";
-import { hashRequest, newId, parseHeaders, serializeBody } from "./capture.js";
+import { batchFor, hashRequest, newId, parseHeaders, serializeBody } from "./capture.js";
 import { redactHeaders, redactString } from "./redact.js";
 
 let seqCounter = 0;
@@ -61,6 +61,7 @@ export function patchFetch(sink: FetchSink, strictMode = false): () => void {
         bodySizeBytes: responseBody ? responseBody.length : Number(bodySize ?? 0) || 0,
         requestHash,
         strictMode,
+        batchId: batchFor(startTime),
       };
       sink.enqueue(record);
       return res;

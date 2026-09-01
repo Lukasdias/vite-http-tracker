@@ -4,6 +4,7 @@ import {
   buildGraph,
   filterGroups,
   groupRecords,
+  inferCausalRecordLinks,
   matchesFilter,
   methodColor,
   statusClass,
@@ -20,6 +21,7 @@ const mk = (partial: Partial<RequestRecord>): RequestRecord => ({
   endTime: partial.endTime ?? 1,
   duration: partial.duration ?? 0,
   strictMode: partial.strictMode ?? false,
+  batchId: partial.batchId,
 });
 
 describe("methodColor", () => {
@@ -98,9 +100,9 @@ describe("filterGroups", () => {
 
 describe("buildGraph", () => {
   const groups = groupRecords([
-    mk({ requestId: "a", seq: 2, url: "/b", strictMode: true }),
-    mk({ requestId: "b", seq: 1, url: "/a" }),
-    mk({ requestId: "c", seq: 3, url: "/b", strictMode: true }),
+    mk({ requestId: "a", seq: 2, url: "/b", strictMode: true, endTime: 10000 }),
+    mk({ requestId: "b", seq: 1, url: "/a", endTime: 10000 }),
+    mk({ requestId: "c", seq: 3, url: "/b", strictMode: true, endTime: 10000 }),
   ]);
   test("orders nodes by seq, collapsing duplicate groups, and lays out left-right", () => {
     const { nodes, edges } = buildGraph(groups, true);
@@ -111,9 +113,7 @@ describe("buildGraph", () => {
     expect(nodes[1]!.dupCount).toBe(2);
     expect(nodes[1]!.strictMode).toBe(true);
     expect(nodes[1]!.id).toBe("a");
-    expect(edges.length).toBe(1);
-    expect(edges[0]!.source).toBe("b");
-    expect(edges[0]!.target).toBe("a");
+    expect(edges.length).toBe(0);
   });
   test("vertical orientation stacks nodes on the y axis", () => {
     const flat = [
@@ -124,5 +124,61 @@ describe("buildGraph", () => {
     expect(nodes[0]!.x).toBe(0);
     expect(nodes[1]!.x).toBe(0);
     expect(nodes[0]!.y).toBeLessThan(nodes[1]!.y);
+  });
+});
+
+describe("inferCausalRecordLinks", () => {
+  test("links a request that starts right after another resolves", () => {
+    const recs = [
+      mk({ requestId: "a", seq: 1, url: "/first", startTime: 0, endTime: 10 }),
+      mk({ requestId: "b", seq: 2, url: "/second", startTime: 12, endTime: 30 }),
+    ];
+    const links = inferCausalRecordLinks(recs);
+    expect(links.length).toBe(1);
+    expect(links[0]![0].requestId).toBe("a");
+    expect(links[0]![1].requestId).toBe("b");
+  });
+  test("does not link parallel requests that start before either resolves", () => {
+    const recs = [
+      mk({ requestId: "a", seq: 1, url: "/a", startTime: 0, endTime: 50 }),
+      mk({ requestId: "b", seq: 2, url: "/b", startTime: 1, endTime: 60 }),
+    ];
+    expect(inferCausalRecordLinks(recs).length).toBe(0);
+  });
+  test("a chained StrictMode batch yields a single group edge", () => {
+    const recs = [
+      mk({ requestId: "t1", seq: 1, url: "/todos/1", startTime: 0, endTime: 10, strictMode: true }),
+      mk({
+        requestId: "u1",
+        seq: 2,
+        url: "/users/1",
+        startTime: 12,
+        endTime: 30,
+        strictMode: true,
+      }),
+      mk({ requestId: "t2", seq: 3, url: "/todos/1", startTime: 5, endTime: 20, strictMode: true }),
+      mk({
+        requestId: "u2",
+        seq: 4,
+        url: "/users/1",
+        startTime: 22,
+        endTime: 40,
+        strictMode: true,
+      }),
+    ];
+    const { edges } = buildGraph(groupRecords(recs), true);
+    expect(edges.length).toBe(1);
+    expect(edges[0]!.source).toBe("t1");
+    expect(edges[0]!.target).toBe("u1");
+  });
+  test("parallel requests sharing a batch id are grouped and not chained", () => {
+    const recs = [
+      mk({ requestId: "a", seq: 1, url: "/todos/1", startTime: 0, endTime: 50, batchId: "b1" }),
+      mk({ requestId: "b", seq: 2, url: "/posts/1", startTime: 1, endTime: 60, batchId: "b1" }),
+    ];
+    const { nodes, edges } = buildGraph(groupRecords(recs), true);
+    expect(nodes[0]!.batchSize).toBe(2);
+    expect(nodes[1]!.batchSize).toBe(2);
+    expect(edges.length).toBe(0);
   });
 });

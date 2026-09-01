@@ -63,7 +63,7 @@ export function FilterBar({
           checked={showEdges}
           onChange={(e) => onShowEdges(e.target.checked)}
         />
-        <span className="text-xs text-base-content/70">Sequence edges</span>
+        <span className="text-xs text-base-content/70">Linked calls</span>
       </label>
       <div className="join">
         <button
