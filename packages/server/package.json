@@ -1,0 +1,12 @@
+{
+  "name": "@http-tracker/server",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "types": "./src/index.ts",
+  "bin": { "http-tracker": "./src/cli.ts" },
+  "dependencies": {
+    "@http-tracker/shared": "*",
+    "hono": "^4.0.0"
+  }
+}

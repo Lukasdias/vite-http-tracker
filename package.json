@@ -1,0 +1,18 @@
+{
+  "name": "http-tracker",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "test": "bun test",
+    "dev:server": "bun run packages/server/src/cli.ts",
+    "build": "bun run build --filter=*",
+    "build:ui": "bun run --cwd packages/ui build"
+  },
+  "devDependencies": {
+    "@happy-dom/global-registrator": "^15.0.0",
+    "@types/bun": "latest",
+    "happy-dom": "^15.0.0",
+    "typescript": "^5.5.0"
+  }
+}

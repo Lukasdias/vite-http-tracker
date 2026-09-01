@@ -1,0 +1,8 @@
+{
+  "name": "@http-tracker/agent",
+  "version": "0.0.0",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "types": "./src/index.ts",
+  "dependencies": { "@http-tracker/shared": "*" }
+}

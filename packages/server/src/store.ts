@@ -1,0 +1,42 @@
+import { DEFAULT_STORE_BYTE_CAP, type RequestRecord } from "@http-tracker/shared";
+
+export interface StoreOptions { byteCap?: number }
+
+export class RequestStore {
+  private records = new Map<number, RequestRecord>();
+  private byteCap: number;
+  private bytes = 0;
+
+  constructor(opts: StoreOptions = {}) {
+    this.byteCap = opts.byteCap ?? DEFAULT_STORE_BYTE_CAP;
+  }
+
+  add(r: RequestRecord): void {
+    const size = this.sizeOf(r);
+    this.records.set(r.seq, r);
+    this.bytes += size;
+    while (this.bytes > this.byteCap && this.records.size > 1) {
+      const sorted = this.snapshot();
+      const oldest = sorted[0];
+      if (!oldest) break;
+      this.records.delete(oldest.seq);
+      this.bytes -= this.sizeOf(oldest);
+    }
+  }
+
+  snapshot(): RequestRecord[] {
+    return [...this.records.values()].sort((a, b) => a.seq - b.seq);
+  }
+
+  clear(): void {
+    this.records.clear();
+    this.bytes = 0;
+  }
+
+  count(): number { return this.records.size; }
+  get sizeInBytes(): number { return this.bytes; }
+
+  private sizeOf(r: RequestRecord): number {
+    return (r.bodySizeBytes ?? 0) + (r.responseBody?.length ?? 0);
+  }
+}

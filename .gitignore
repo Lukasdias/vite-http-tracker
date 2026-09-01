@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.log
+.env
+packages/ui/dist/
+apps/*/dist/
+apps/*/.vite/
