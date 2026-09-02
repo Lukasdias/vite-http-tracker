@@ -6,6 +6,7 @@
   "scripts": {
     "test": "bun test",
     "dev:server": "bun run packages/server/src/cli.ts",
+    "dev:all": "concurrently -k -n tracker,app -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/react-app dev\"",
     "build": "bun run build --filter=*",
     "build:ui": "bun run --cwd packages/ui build",
     "lint": "oxlint packages apps",
@@ -14,6 +15,7 @@
   "devDependencies": {
     "@happy-dom/global-registrator": "^15.0.0",
     "@types/bun": "latest",
+    "concurrently": "^10.0.5",
     "happy-dom": "^15.0.0",
     "oxfmt": "^0.66.0",
     "oxlint": "^1.81.0",
