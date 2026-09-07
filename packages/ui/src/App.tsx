@@ -19,6 +19,7 @@ import { useRequest } from "./hooks/useRequests.js";
 import { RequestNode, type RequestFlowNode } from "./components/RequestNode.js";
 import { Header } from "./components/Header.js";
 import { InspectPanel } from "./components/InspectPanel.js";
+import { JsonGraphView } from "./components/JsonGraphView.js";
 import { useTrackerToken } from "./hooks/useTrackerToken.js";
 import type { Orientation } from "./graph.js";
 
@@ -77,6 +78,7 @@ function Dashboard() {
   const [showEdges, setShowEdges] = useState(true);
   const [orientation, setOrientation] = useState<Orientation>("horizontal");
   const [selectedId, setSelectedId] = useRequestSelection();
+  const [graphRecordId, setGraphRecordId] = useState<string | null>(null);
   const { groups, nodes, edges } = useGraph(filter, showEdges, orientation);
   const selected = useRequest(selectedId);
   const clear = useClearRequests(send);
@@ -150,12 +152,19 @@ function Dashboard() {
       />
       <div className="flex min-h-0 flex-1">
         <div className="min-w-0 flex-1">
-          <FlowCanvas
-            nodes={graphNodes}
-            edges={graphEdges}
-            orientation={orientation}
-            onNodeClick={setSelectedId}
-          />
+          {graphRecordId && selected ? (
+            <JsonGraphView record={selected} onBack={() => setGraphRecordId(null)} />
+          ) : (
+            <FlowCanvas
+              nodes={graphNodes}
+              edges={graphEdges}
+              orientation={orientation}
+              onNodeClick={(id) => {
+                setSelectedId(id);
+                setGraphRecordId(id);
+              }}
+            />
+          )}
         </div>
         <div className="hidden w-80 shrink-0 border-l border-base-300 md:block">
           <InspectPanel
