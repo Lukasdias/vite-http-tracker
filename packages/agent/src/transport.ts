@@ -3,7 +3,7 @@ import {
   DEFAULT_TOKEN,
   DEFAULT_WS_URL,
   type RequestRecord,
-} from "@http-tracker/shared";
+} from "@vite-http-tracker/shared";
 
 export interface TransportOptions {
   url?: string;

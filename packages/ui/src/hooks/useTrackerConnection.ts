@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { RequestRecord } from "@http-tracker/shared";
+import type { RequestRecord } from "@vite-http-tracker/shared";
 
 export interface ConnPayload {
   type: string;

@@ -121,7 +121,7 @@ export function Header({
             <Logo className="size-6" />
           </div>
           <div className="leading-tight">
-            <div className="font-mono text-sm font-semibold tracking-tight">http-tracker</div>
+            <div className="font-mono text-sm font-semibold tracking-tight">vite-http-tracker</div>
             <div className="text-[9px] uppercase tracking-[0.2em] text-base-content/50">
               request graph
             </div>

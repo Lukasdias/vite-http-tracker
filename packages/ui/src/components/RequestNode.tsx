@@ -1,7 +1,7 @@
 import type { Node, NodeProps } from "@xyflow/react";
 import { Handle, Position } from "@xyflow/react";
 import { LightningBoltIcon } from "@radix-ui/react-icons";
-import type { RequestRecord } from "@http-tracker/shared";
+import type { RequestRecord } from "@vite-http-tracker/shared";
 import { methodColor, statusClass, type Orientation } from "../graph.js";
 
 export interface RequestNodeData extends Record<string, unknown> {

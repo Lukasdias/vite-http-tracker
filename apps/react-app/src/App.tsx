@@ -61,7 +61,7 @@ export function App() {
 
   return (
     <main style={{ padding: "2rem", fontFamily: "system-ui, sans-serif", lineHeight: 1.6 }}>
-      <h1>http-tracker sample</h1>
+      <h1>vite-http-tracker sample</h1>
       <p>
         Open the dashboard at <code>http://localhost:4000/?token=dev</code>.
       </p>

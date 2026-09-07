@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { RequestRecord } from "@http-tracker/shared";
+import type { RequestRecord } from "@vite-http-tracker/shared";
 import {
   buildGraph,
   filterGroups,

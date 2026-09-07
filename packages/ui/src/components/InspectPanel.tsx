@@ -1,4 +1,4 @@
-import type { RequestRecord } from "@http-tracker/shared";
+import type { RequestRecord } from "@vite-http-tracker/shared";
 import { CopyIcon } from "@radix-ui/react-icons";
 import { toast } from "sonner";
 import { toCurl } from "../curl.js";

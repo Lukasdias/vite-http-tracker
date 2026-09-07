@@ -1,4 +1,4 @@
-import { REDACTED_VALUE, SENSITIVE_FIELDS } from "@http-tracker/shared";
+import { REDACTED_VALUE, SENSITIVE_FIELDS } from "@vite-http-tracker/shared";
 
 const fieldSet = new Set<string>(SENSITIVE_FIELDS);
 

@@ -1,4 +1,4 @@
-import type { RequestRecord } from "@http-tracker/shared";
+import type { RequestRecord } from "@vite-http-tracker/shared";
 
 export interface GraphNode {
   id: string;

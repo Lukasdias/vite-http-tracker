@@ -1,4 +1,4 @@
-import { DEFAULT_STORE_BYTE_CAP, type RequestRecord } from "@http-tracker/shared";
+import { DEFAULT_STORE_BYTE_CAP, type RequestRecord } from "@vite-http-tracker/shared";
 
 export interface StoreOptions {
   byteCap?: number;

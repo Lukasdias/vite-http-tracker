@@ -1,5 +1,5 @@
 {
-  "name": "@http-tracker/agent",
+  "name": "@vite-http-tracker/agent",
   "version": "0.0.0",
   "type": "module",
   "types": "./src/index.ts",
@@ -7,6 +7,6 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@http-tracker/shared": "*"
+    "@vite-http-tracker/shared": "*"
   }
 }

@@ -1,8 +1,8 @@
 {
-  "name": "@http-tracker/server",
+  "name": "@vite-http-tracker/server",
   "version": "0.0.0",
   "bin": {
-    "http-tracker": "./src/cli.ts"
+    "vite-http-tracker": "./src/cli.ts"
   },
   "type": "module",
   "types": "./src/index.ts",
@@ -10,7 +10,7 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@http-tracker/shared": "*",
+    "@vite-http-tracker/shared": "*",
     "hono": "^4.0.0"
   }
 }

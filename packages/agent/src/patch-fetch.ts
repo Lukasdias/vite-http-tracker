@@ -1,4 +1,4 @@
-import { type RequestRecord, DEFAULT_BODY_CAP } from "@http-tracker/shared";
+import { type RequestRecord, DEFAULT_BODY_CAP } from "@vite-http-tracker/shared";
 import { batchFor, hashRequest, newId, parseHeaders, serializeBody } from "./capture.js";
 import { redactHeaders, redactString } from "./redact.js";
 

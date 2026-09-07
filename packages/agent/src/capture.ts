@@ -1,4 +1,4 @@
-import { DEFAULT_BODY_CAP, BATCH_WINDOW_MS } from "@http-tracker/shared";
+import { DEFAULT_BODY_CAP, BATCH_WINDOW_MS } from "@vite-http-tracker/shared";
 
 export function newId(): string {
   if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function")

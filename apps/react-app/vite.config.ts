@@ -1,8 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { httpTracker } from "@http-tracker/plugin";
+import { viteHttpTracker } from "@vite-http-tracker/plugin";
 
 export default defineConfig({
-  plugins: [react(), httpTracker()],
+  plugins: [react(), viteHttpTracker()],
   server: { port: 5173 },
 });

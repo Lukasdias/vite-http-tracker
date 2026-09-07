@@ -10,7 +10,7 @@ describe("server", () => {
     base = `http://127.0.0.1:${srv.port}`;
     const res = await fetch(base + "/");
     expect(res.status).toBe(200);
-    expect(await res.text()).toContain("http-tracker");
+    expect(await res.text()).toContain("vite-http-tracker");
   });
   test("ingests records via POST /events", async () => {
     const body = {

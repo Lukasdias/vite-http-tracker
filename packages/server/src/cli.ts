@@ -14,7 +14,7 @@ export function parseArgs(argv: string[]): CliArgs {
     else if (a === "--token") token = argv[++i] ?? token;
     else if (a === "--no-open") open = false;
     else if (a === "--help") {
-      console.log("http-tracker [--port 4000] [--token dev] [--no-open]");
+      console.log("vite-http-tracker [--port 4000] [--token dev] [--no-open]");
       process.exit(0);
     }
   }
@@ -26,7 +26,7 @@ async function main(): Promise<void> {
   const { startServer } = await import("./server.js");
   const { port: bound } = await startServer({ port, token });
   const url = `http://127.0.0.1:${bound}/?token=${token}`;
-  console.log(`http-tracker listening at ${url}`);
+  console.log(`vite-http-tracker listening at ${url}`);
   if (open) {
     const cmd =
       process.platform === "darwin" ? "open" : process.platform === "win32" ? "start" : "xdg-open";

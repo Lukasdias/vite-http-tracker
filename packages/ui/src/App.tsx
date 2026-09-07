@@ -9,7 +9,7 @@ import {
   useReactFlow,
 } from "@xyflow/react";
 import type { Edge } from "@xyflow/react";
-import type { RequestRecord } from "@http-tracker/shared";
+import type { RequestRecord } from "@vite-http-tracker/shared";
 import { useRequestFilters } from "./hooks/useRequestFilters.js";
 import { useRequestSelection } from "./hooks/useRequestSelection.js";
 import { useGraph } from "./hooks/useGraph.js";

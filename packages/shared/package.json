@@ -1,5 +1,5 @@
 {
-  "name": "@http-tracker/shared",
+  "name": "@vite-http-tracker/shared",
   "version": "0.0.0",
   "type": "module",
   "types": "./src/index.ts",

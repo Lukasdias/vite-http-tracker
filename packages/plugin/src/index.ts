@@ -2,13 +2,13 @@ import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { Plugin, ResolvedConfig } from "vite";
 
-export interface HttpTrackerOptions {
+export interface ViteHttpTrackerOptions {
   serverUrl?: string;
   token?: string;
   autoInject?: boolean;
 }
 
-const VIRTUAL_ID = "virtual:http-tracker/agent";
+const VIRTUAL_ID = "virtual:vite-http-tracker/agent";
 const RESOLVED_ID = "\0" + VIRTUAL_ID;
 const SOURCE_EXT = /\.(tsx|jsx|ts|js)$/;
 
@@ -39,14 +39,14 @@ async function detectStrictMode(root: string): Promise<boolean> {
   return false;
 }
 
-export function httpTracker(opts: HttpTrackerOptions = {}): Plugin {
+export function viteHttpTracker(opts: ViteHttpTrackerOptions = {}): Plugin {
   const serverUrl = opts.serverUrl;
   const token = opts.token ?? "dev";
   const autoInject = opts.autoInject ?? true;
   let strictMode = false;
 
   return {
-    name: "http-tracker",
+    name: "vite-http-tracker",
     apply: "serve",
     async configResolved(config: ResolvedConfig) {
       if (autoInject) strictMode = await detectStrictMode(config.root);
@@ -59,7 +59,7 @@ export function httpTracker(opts: HttpTrackerOptions = {}): Plugin {
         const args: string[] = [];
         if (serverUrl) args.push(`serverUrl: ${JSON.stringify(serverUrl)}`);
         args.push(`token: ${JSON.stringify(token)}`, `strictMode: ${strictMode}`);
-        return `import { initAgent } from "@http-tracker/agent";\ninitAgent({ ${args.join(", ")} });`;
+        return `import { initAgent } from "@vite-http-tracker/agent";\ninitAgent({ ${args.join(", ")} });`;
       }
     },
     transformIndexHtml: {

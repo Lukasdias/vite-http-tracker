@@ -1,5 +1,5 @@
 {
-  "name": "@http-tracker/plugin",
+  "name": "@vite-http-tracker/plugin",
   "version": "0.0.0",
   "type": "module",
   "types": "./src/index.ts",

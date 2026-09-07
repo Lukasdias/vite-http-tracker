@@ -1,6 +1,6 @@
 # AGENTS.md
 
-Agent/LLM-oriented guide to the `http-tracker` monorepo. Read this before changing code. It documents the architecture, the invariants the code depends on, and the conventions to follow. Keep it in sync with the code.
+Agent/LLM-oriented guide to the `vite-http-tracker` monorepo. Read this before changing code. It documents the architecture, the invariants the code depends on, and the conventions to follow. Keep it in sync with the code.
 
 ## What this project is
 
@@ -18,7 +18,7 @@ Bun workspaces (`package.json` → `workspaces: ["packages/*", "apps/*"]`).
 | `packages/agent` | Browser lib. Patches `fetch` + `XMLHttpRequest`, builds records, streams over WebSocket. |
 | `packages/server` | Bun + Hono + native WebSocket. Ingests, stores, broadcasts, serves UI, CLI. |
 | `packages/ui` | React 19 dashboard. React Flow timeline, filters, inspector, dedup/batch logic. |
-| `packages/plugin` | Vite plugin `httpTracker()`. Auto-injects agent, detects Strict Mode at build time. |
+| `packages/plugin` | Vite plugin `viteHttpTracker()`. Auto-injects agent, detects Strict Mode at build time. |
 | `apps/react-app` | Sample Vite + React 19 app with per-scenario buttons. |
 | `packages/ui/dist` | Built dashboard bundle, served by the server (SPA fallback). |
 
@@ -44,7 +44,7 @@ The single canonical record type is `RequestRecord` in `packages/shared/src/type
 ```mermaid
 flowchart LR
   subgraph App["Tracked app"]
-    P["vite plugin httpTracker (apply: serve)"]
+    P["vite plugin viteHttpTracker (apply: serve)"]
     A["agent: patchFetch / patchXhr"]
   end
   S["server: Bun.serve + Hono (127.0.0.1:4000)"]
@@ -58,9 +58,9 @@ flowchart LR
 ### Layers and boundaries
 
 - **Agent** (`packages/agent`): pure capture helpers (`capture.ts`), redaction (`redact.ts`), transport (`transport.ts`), and the DOM patches (`patch-fetch.ts`, `patch-xhr.ts`). `initAgent()` wires it together and owns the WS socket + reconnect. Only touches browser globals (`window`, `WebSocket`, `crypto`).
-- **Server** (`packages/server`): `store.ts` (byte-LRU), `server.ts` (Hono + `Bun.serve` upgrade for `/ws` and `/events`, static serving of `ui/dist` with `public/` as dev fallback), `cli.ts` (`http-tracker`). No React, no UI logic. Binds to `127.0.0.1`. Auth token required on every write and every WS upgrade.
+- **Server** (`packages/server`): `store.ts` (byte-LRU), `server.ts` (Hono + `Bun.serve` upgrade for `/ws` and `/events`, static serving of `ui/dist` with `public/` as dev fallback), `cli.ts` (`vite-http-tracker`). No React, no UI logic. Binds to `127.0.0.1`. Auth token required on every write and every WS upgrade.
 - **UI** (`packages/ui`): pure graph logic in `src/graph.ts` (dedup, batches, layout, graph building — fully unit-tested, no React). React/React Flow components and TanStack Query hooks under `src/components/`, `src/hooks/`. Reads records from the query cache fed by the WS connection hook.
-- **Plugin** (`packages/plugin`): `httpTracker()` build-time plugin. `apply: "serve"`. Injects a virtual module (`virtual:http-tracker/agent`) into `index.html` via `transformIndexHtml` and detects whether the app uses Strict Mode by scanning `src/` in `configResolved`.
+- **Plugin** (`packages/plugin`): `viteHttpTracker()` build-time plugin. `apply: "serve"`. Injects a virtual module (`virtual:vite-http-tracker/agent`) into `index.html` via `transformIndexHtml` and detects whether the app uses Strict Mode by scanning `src/` in `configResolved`.
 - **Shared** (`packages/shared`): type + constants only. No runtime logic beyond constants.
 
 ## Data model (`RequestRecord`)

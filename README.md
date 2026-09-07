@@ -1,4 +1,4 @@
-# http-tracker
+# vite-http-tracker
 
 A developer-experience tool that captures the HTTP requests a frontend app makes (the same traffic you see in the browser Network panel) and renders them as an interactive time-ordered graph on a separate port.
 
@@ -19,8 +19,8 @@ The tool intercepts `fetch`/`XMLHttpRequest` in the running app, sends each requ
 
 ```mermaid
 flowchart LR
-  subgraph App["Tracked app (Vite / any bundler)"]
-    P[Vite plugin httpTracker]
+  subgraph App["Tracked app (Vite)"]
+    P[Vite plugin viteHttpTracker]
     A[agent: patches fetch + XHR]
   end
   S[server: Bun + Hono + WS, 127.0.0.1:4000]
@@ -52,7 +52,7 @@ sequenceDiagram
   Dashboard->>Dashboard: groupRecords, buildGraph, render React Flow timeline
 ```
 
-An agent can be added to any app, not just Vite, by importing the agent bundle manually (`import { initAgent } from "@http-tracker/agent"`).
+The agent can also be wired up manually in a Vite app — `import { initAgent } from "@vite-http-tracker/agent"` — when you want capture without the plugin's auto-inject.
 
 ## Packages
 
@@ -60,9 +60,9 @@ An agent can be added to any app, not just Vite, by importing the agent bundle m
 |---|---|
 | `packages/shared` | `RequestRecord` type + constants (caps, redaction tokens, dedup/batch windows, defaults). |
 | `packages/agent` | Browser library. Patches `fetch`/`XMLHttpRequest`, captures records, streams over WebSocket with a ring buffer + reconnect + ack replay. |
-| `packages/server` | Bun + Hono + native WebSocket. Ingests records, byte-LRU store, broadcasts to dashboards, serves the UI, CLI `http-tracker`. |
+| `packages/server` | Bun + Hono + native WebSocket. Ingests records, byte-LRU store, broadcasts to dashboards, serves the UI, CLI `vite-http-tracker`. |
 | `packages/ui` | React 19 dashboard: React Flow timeline, filters, inspector, dedup/batch logic. |
-| `packages/plugin` | Vite plugin `httpTracker()`: auto-injects the agent into the dev build and detects Strict Mode from source. |
+| `packages/plugin` | Vite plugin `viteHttpTracker()`: auto-injects the agent into the dev build and detects Strict Mode from source. |
 | `apps/react-app` | Sample React 19 app (per-scenario buttons) used to exercise the tool. |
 
 ## Getting started
@@ -91,10 +91,10 @@ Open the dashboard at <http://localhost:4000/?token=dev> and the sample at <http
 // vite.config.ts
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { httpTracker } from "@http-tracker/plugin";
+import { viteHttpTracker } from "@vite-http-tracker/plugin";
 
 export default defineConfig({
-  plugins: [react(), httpTracker({ serverUrl: "http://localhost:4000", token: "dev" })],
+  plugins: [react(), viteHttpTracker({ serverUrl: "http://localhost:4000", token: "dev" })],
 });
 ```
 
@@ -118,7 +118,7 @@ No other code changes are required. The agent connects to `ws://<page-host>:4000
 #### Troubleshooting
 
 - **Dashboard says "offline"** — the server isn't running, or the token/protocol don't match. Start `bun run packages/server/src/cli.ts` and keep the `?token=dev` in the dashboard URL.
-- **No calls appear** — the agent isn't injected. For dev, confirm `httpTracker()` is in `vite.config.ts`, or call `initAgent()` manually. The plugin is dev-only (`apply: "serve"`) — it does not inject during `vite build`.
+- **No calls appear** — the agent isn't injected. For dev, confirm `viteHttpTracker()` is in `vite.config.ts`, or call `initAgent()` manually. The plugin is dev-only (`apply: "serve"`) — it does not inject during `vite build`.
 - **Bodies show as `opaque`** — the call is cross-origin and page JS can't read the response (CORS). DevTools is CORS-exempt; page code is not.
 - **WSL2** — open the dashboard via `localhost:<port>` forwarding, not the WSL IP.
 
@@ -132,7 +132,7 @@ No other code changes are required. The agent connects to `ws://<page-host>:4000
 
 ## Configuration
 
-`httpTracker(options)` (plugin):
+`viteHttpTracker(options)` (plugin):
 
 | Option | Default | Description |
 |---|---|---|
@@ -140,7 +140,7 @@ No other code changes are required. The agent connects to `ws://<page-host>:4000
 | `token` | `dev` | Shared auth token. Required on every ingest/upgrade path. |
 | `autoInject` | `true` | Whether to inject the agent into the dev build. |
 
-CLI `http-tracker`:
+CLI `vite-http-tracker`:
 
 | Flag | Default | Description |
 |---|---|---|

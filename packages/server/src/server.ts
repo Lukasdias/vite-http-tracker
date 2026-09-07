@@ -1,7 +1,7 @@
 import { join, extname } from "node:path";
 import { Hono } from "hono";
 import type { ServerWebSocket } from "bun";
-import { DEFAULT_SERVER_PORT, DEFAULT_TOKEN, type RequestRecord } from "@http-tracker/shared";
+import { DEFAULT_SERVER_PORT, DEFAULT_TOKEN, type RequestRecord } from "@vite-http-tracker/shared";
 import { RequestStore } from "./store.js";
 
 export interface ServerOptions {

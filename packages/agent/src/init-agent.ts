@@ -1,4 +1,4 @@
-import { DEFAULT_SERVER_URL, DEFAULT_TOKEN } from "@http-tracker/shared";
+import { DEFAULT_SERVER_URL, DEFAULT_TOKEN } from "@vite-http-tracker/shared";
 import { patchFetch } from "./patch-fetch.js";
 import { patchXhr } from "./patch-xhr.js";
 import { WsTransport } from "./transport.js";
