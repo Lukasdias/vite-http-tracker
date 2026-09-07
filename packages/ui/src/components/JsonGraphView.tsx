@@ -133,7 +133,6 @@ export function JsonGraphView({ record, onBack }: { record: RequestRecord; onBac
                 id: e.id,
                 source: e.source,
                 target: e.target,
-                label: e.label,
                 animated: true,
                 style: { stroke: EDGE_COLOR, strokeWidth: 2 },
                 markerEnd: { type: MarkerType.ArrowClosed, color: EDGE_COLOR },

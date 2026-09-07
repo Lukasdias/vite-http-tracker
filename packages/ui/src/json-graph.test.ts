@@ -42,13 +42,12 @@ describe("buildJsonGraph", () => {
     expect(byId.get("$.users.0.name")?.value).toBe('"a"');
   });
 
-  test("labels edges with keys and array indices", () => {
+  test("creates edges between parent and children", () => {
     const g = ok(buildJsonGraph(tree, new Set()));
-    const labels = g.edges.map((e) => e.label).sort();
-    expect(labels).toContain("users");
-    expect(labels).toContain("total");
-    expect(labels).toContain("0");
-    expect(labels).toContain("1");
+    const sources = new Set(g.edges.map((e) => e.source));
+    expect(sources.has("$")).toBe(true);
+    expect(sources.has("$.users")).toBe(true);
+    expect(g.edges.some((e) => e.target === "$.users")).toBe(true);
   });
 
   test("collapsed containers omit descendants but keep childCount", () => {

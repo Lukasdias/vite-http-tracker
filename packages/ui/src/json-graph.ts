@@ -16,7 +16,6 @@ export interface JsonGraphEdge {
   id: string;
   source: string;
   target: string;
-  label: string;
 }
 
 export interface JsonGraph {
@@ -128,7 +127,7 @@ function flatten(node: TreeNode, outNodes: JsonGraphNode[], outEdges: JsonGraphE
     y: node.y,
   });
   for (const c of node.children) {
-    outEdges.push({ id: "jg" + outEdges.length, source: node.id, target: c.id, label: c.key });
+    outEdges.push({ id: "jg" + outEdges.length, source: node.id, target: c.id });
     flatten(c, outNodes, outEdges);
   }
 }
