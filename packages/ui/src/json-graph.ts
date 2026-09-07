@@ -28,7 +28,8 @@ export interface JsonGraph {
 export type JsonGraphResult = { ok: true; graph: JsonGraph } | { ok: false; count: number };
 
 export const MAX_GRAPH_NODES = 2000;
-export const ARC_RADIUS = 180;
+export const X_GAP = 220;
+export const Y_GAP = 40;
 
 export function countJsonNodes(value: JsonValue): number {
   let count = 0;
@@ -100,25 +101,19 @@ function buildNode(
   };
 }
 
-function leafCount(node: TreeNode): number {
-  if (node.children.length === 0) return 1;
-  let sum = 0;
-  for (const c of node.children) sum += leafCount(c);
-  return sum;
-}
-
-function place(node: TreeNode, depth: number, a0: number, a1: number): void {
-  const angle = (a0 + a1) / 2;
-  node.x = depth * ARC_RADIUS * Math.cos(angle);
-  node.y = depth * ARC_RADIUS * Math.sin(angle);
-  if (node.children.length === 0) return;
-  const total = node.children.reduce((s, c) => s + leafCount(c), 0);
-  let cursor = a0;
-  for (const c of node.children) {
-    const span = total > 0 ? (leafCount(c) / total) * (a1 - a0) : (a1 - a0) / node.children.length;
-    place(c, depth + 1, cursor, cursor + span);
-    cursor += span;
+function layoutTree(node: TreeNode, depth: number, cursor: { value: number }): void {
+  node.x = depth * X_GAP;
+  if (node.children.length === 0) {
+    node.y = cursor.value;
+    cursor.value += Y_GAP;
+    return;
   }
+  let sumY = 0;
+  for (const c of node.children) {
+    layoutTree(c, depth + 1, cursor);
+    sumY += c.y;
+  }
+  node.y = sumY / node.children.length;
 }
 
 function flatten(node: TreeNode, outNodes: JsonGraphNode[], outEdges: JsonGraphEdge[]): void {
@@ -143,7 +138,8 @@ export function buildJsonGraph(value: JsonValue, collapsed: ReadonlySet<string>)
   if (count > MAX_GRAPH_NODES) return { ok: false, count };
 
   const root = buildNode("$", "$", value, 0, collapsed);
-  place(root, 0, 0, Math.PI * 2);
+  const cursor = { value: 0 };
+  layoutTree(root, 0, cursor);
   const nodes: JsonGraphNode[] = [];
   const edges: JsonGraphEdge[] = [];
   flatten(root, nodes, edges);

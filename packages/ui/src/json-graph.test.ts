@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
-  ARC_RADIUS,
+  X_GAP,
   buildJsonGraph,
   countJsonNodes,
   toggleCollapse,
@@ -68,23 +68,19 @@ describe("buildJsonGraph", () => {
     expect(byId.has("$.meta.inner")).toBe(true);
   });
 
-  test("places nodes on concentric arcs", () => {
+  test("lays out nodes left-to-right by depth, siblings stacked", () => {
     const g = ok(buildJsonGraph(tree, new Set()));
     const byId = new Map(g.nodes.map((n) => [n.id, n]));
     const root = byId.get("$");
     const users = byId.get("$.users");
     const total = byId.get("$.total");
     const users0 = byId.get("$.users.0");
-    expect(root?.x).toBeCloseTo(0, 5);
-    expect(root?.y).toBeCloseTo(0, 5);
-    const r1 = Math.hypot(users?.x ?? 0, users?.y ?? 0);
-    expect(r1).toBeCloseTo(ARC_RADIUS, 5);
-    const r1b = Math.hypot(total?.x ?? 0, total?.y ?? 0);
-    expect(r1b).toBeCloseTo(ARC_RADIUS, 5);
-    const r2 = Math.hypot(users0?.x ?? 0, users0?.y ?? 0);
-    expect(r2).toBeCloseTo(2 * ARC_RADIUS, 5);
-    expect(users?.x).not.toBe(total?.x);
+    expect(root?.x).toBe(0);
+    expect(users?.x).toBe(X_GAP);
+    expect(total?.x).toBe(X_GAP);
+    expect(users0?.x).toBe(2 * X_GAP);
     expect(users?.y).not.toBe(total?.y);
+    expect(users0?.y).not.toBe(users?.y);
   });
 
   test("returns overflow sentinel above cap", () => {
