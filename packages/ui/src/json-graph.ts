@@ -28,8 +28,7 @@ export interface JsonGraph {
 export type JsonGraphResult = { ok: true; graph: JsonGraph } | { ok: false; count: number };
 
 export const MAX_GRAPH_NODES = 2000;
-export const X_JSON_GAP = 220;
-export const Y_JSON_GAP = 120;
+export const ARC_RADIUS = 180;
 
 export function countJsonNodes(value: JsonValue): number {
   let count = 0;
@@ -51,98 +50,103 @@ export function countJsonNodes(value: JsonValue): number {
   return count;
 }
 
-interface Pending {
+interface TreeNode {
   id: string;
   key: string;
-  value: JsonValue;
+  kind: JsonKind;
+  value?: string;
   depth: number;
-  collapsed: boolean;
+  childCount: number;
+  children: TreeNode[];
+  x: number;
+  y: number;
+}
+
+function buildNode(
+  id: string,
+  key: string,
+  value: JsonValue,
+  depth: number,
+  collapsed: ReadonlySet<string>,
+): TreeNode {
+  const kind = kindOf(value);
+  if (kind === "object" || kind === "array") {
+    const entries = Array.isArray(value)
+      ? value.map((v, i) => ({ key: String(i), value: v }))
+      : Object.entries(value as Record<string, JsonValue>).map(([k, v]) => ({ key: k, value: v }));
+    let childCount = 0;
+    for (const e of entries) childCount += countJsonNodes(e.value);
+    const children: TreeNode[] = [];
+    if (!collapsed.has(id)) {
+      for (const e of entries) {
+        const childId = `${id}.${e.key}`;
+        const nested = jsonString(e.value);
+        const childValue = nested !== undefined ? (JSON.parse(nested) as JsonValue) : e.value;
+        children.push(buildNode(childId, e.key, childValue, depth + 1, collapsed));
+      }
+    }
+    return { id, key, kind, depth, childCount, children, x: 0, y: 0 };
+  }
+  return {
+    id,
+    key,
+    kind,
+    value: scalarText(value, kind),
+    depth,
+    childCount: 0,
+    children: [],
+    x: 0,
+    y: 0,
+  };
+}
+
+function leafCount(node: TreeNode): number {
+  if (node.children.length === 0) return 1;
+  let sum = 0;
+  for (const c of node.children) sum += leafCount(c);
+  return sum;
+}
+
+function place(node: TreeNode, depth: number, a0: number, a1: number): void {
+  const angle = (a0 + a1) / 2;
+  node.x = depth * ARC_RADIUS * Math.cos(angle);
+  node.y = depth * ARC_RADIUS * Math.sin(angle);
+  if (node.children.length === 0) return;
+  const total = node.children.reduce((s, c) => s + leafCount(c), 0);
+  let cursor = a0;
+  for (const c of node.children) {
+    const span = total > 0 ? (leafCount(c) / total) * (a1 - a0) : (a1 - a0) / node.children.length;
+    place(c, depth + 1, cursor, cursor + span);
+    cursor += span;
+  }
+}
+
+function flatten(node: TreeNode, outNodes: JsonGraphNode[], outEdges: JsonGraphEdge[]): void {
+  outNodes.push({
+    id: node.id,
+    key: node.key,
+    kind: node.kind,
+    value: node.value,
+    depth: node.depth,
+    childCount: node.childCount,
+    x: node.x,
+    y: node.y,
+  });
+  for (const c of node.children) {
+    outEdges.push({ id: "jg" + outEdges.length, source: node.id, target: c.id, label: c.key });
+    flatten(c, outNodes, outEdges);
+  }
 }
 
 export function buildJsonGraph(value: JsonValue, collapsed: ReadonlySet<string>): JsonGraphResult {
   const count = countJsonNodes(value);
   if (count > MAX_GRAPH_NODES) return { ok: false, count };
 
+  const root = buildNode("$", "$", value, 0, collapsed);
+  place(root, 0, 0, Math.PI * 2);
   const nodes: JsonGraphNode[] = [];
   const edges: JsonGraphEdge[] = [];
-  const queue: Pending[] = [{ id: "$", key: "$", value, depth: 0, collapsed: collapsed.has("$") }];
-  const levels = new Map<number, number>();
-  let edgeSeq = 0;
-
-  while (queue.length) {
-    const p = queue.shift();
-    if (!p) continue;
-    const kind = kindOf(p.value);
-
-    if (kind === "object" || kind === "array") {
-      const entries = Array.isArray(p.value)
-        ? p.value.map((v, i) => ({ key: String(i), value: v }))
-        : Object.entries(p.value as Record<string, JsonValue>).map(([key, v]) => ({
-            key,
-            value: v,
-          }));
-      let childCount = 0;
-      for (const e of entries) childCount += countJsonNodes(e.value);
-      nodes.push({
-        id: p.id,
-        key: p.key,
-        kind,
-        depth: p.depth,
-        childCount,
-        x: levels.get(p.depth) ?? 0,
-        y: p.depth * Y_JSON_GAP,
-      });
-      levels.set(p.depth, (levels.get(p.depth) ?? 0) + 1);
-
-      if (!p.collapsed) {
-        for (const e of entries) {
-          const childId = `${p.id}.${e.key}`;
-          edges.push({
-            id: "jg" + edgeSeq++,
-            source: p.id,
-            target: childId,
-            label: e.key,
-          });
-          const childKind = kindOf(e.value);
-          const nested = jsonString(e.value);
-          if (childKind === "object" || childKind === "array" || nested !== undefined) {
-            queue.push({
-              id: childId,
-              key: e.key,
-              value: nested !== undefined ? (JSON.parse(nested) as JsonValue) : e.value,
-              depth: p.depth + 1,
-              collapsed: collapsed.has(childId),
-            });
-          } else {
-            nodes.push({
-              id: childId,
-              key: e.key,
-              kind: childKind,
-              value: scalarText(e.value, childKind),
-              depth: p.depth + 1,
-              childCount: 0,
-              x: levels.get(p.depth + 1) ?? 0,
-              y: (p.depth + 1) * Y_JSON_GAP,
-            });
-            levels.set(p.depth + 1, (levels.get(p.depth + 1) ?? 0) + 1);
-          }
-        }
-      }
-    } else {
-      nodes.push({
-        id: p.id,
-        key: p.key,
-        kind,
-        value: scalarText(p.value, kind),
-        depth: p.depth,
-        childCount: 0,
-        x: levels.get(p.depth) ?? 0,
-        y: p.depth * Y_JSON_GAP,
-      });
-      levels.set(p.depth, (levels.get(p.depth) ?? 0) + 1);
-    }
-  }
-
+  flatten(root, nodes, edges);
   return { ok: true, graph: { nodes, edges, rootId: "$" } };
 }
 
