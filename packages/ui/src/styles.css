@@ -34,3 +34,27 @@
 .json-viewer .j-punct {
   color: #6b778b;
 }
+.json-graph {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.json-graph .j-key {
+  color: #8ab4f8;
+}
+.json-graph .j-string {
+  color: #4ad295;
+}
+.json-graph .j-number {
+  color: #f5a623;
+}
+.json-graph .j-bool {
+  color: #c07af0;
+}
+.json-graph .j-null {
+  color: #8b93a7;
+  font-style: italic;
+}
+.json-graph .j-punct {
+  color: #6b778b;
+}
