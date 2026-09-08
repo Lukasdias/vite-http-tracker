@@ -14,7 +14,7 @@ The tool intercepts `fetch`/`XMLHttpRequest` in the running app, sends each requ
 - Filters by method/status/URL, and an inspector panel shows full headers / body / timing per request.
 - Zero-config opt-in: a Vite plugin auto-injects the agent into a dev build; a CLI starts the server.
 - A small development status button appears in plugin-enabled apps and links back to the dashboard.
-- Local-first: no auth, no external service. Server holds a bounded in-memory history.
+- Local-first: no external service or persistent storage. The server binds to `127.0.0.1`, requires a shared token, and holds a bounded in-memory history.
 
 ## Architecture
 
@@ -91,6 +91,8 @@ bun run --cwd apps/react-app dev
 
 Open the dashboard at <http://localhost:4000/?token=dev> and the sample at <http://localhost:5173>. In the sample, click a scenario (e.g. `Chain`) to emit HTTP calls; watch them appear on the dashboard timeline.
 
+The default token is `dev` for local development. If you change it with `--token`, use the same value in the dashboard URL and in the Vite plugin configuration. The token is required for both agent ingest and dashboard WebSocket connections.
+
 The repository also includes Vite fixtures for Vue, Solid, Svelte, Preact, and vanilla TypeScript. Start any fixture with `bun run --cwd apps/<name> dev`; they use ports `5174` through `5178` respectively. These are intended for manual browser checks of plugin injection and request capture across Vite frontend stacks.
 
 To start the tracker and a fixture together, use `bun run dev:all:<fixture>` where `<fixture>` is `react`, `vue`, `solid`, `svelte`, `preact`, or `vanilla`.
@@ -159,7 +161,7 @@ CLI `vite-http-tracker`:
 | `--token` | `dev` | Shared token. |
 | `--no-open` | open browser | Do not auto-open the dashboard. |
 
-UI can point at a different server via the `ws` query param (e.g. `?token=dev&ws=ws://localhost:9999/ws?token=dev`) or the `VITE_HTTP_TRACKER_URL` env var.
+UI can point at a different server via the `ws` query param (for example, `?token=dev&ws=ws%3A%2F%2Flocalhost%3A9999%2Fws%3Ftoken%3Ddev`) or the `VITE_HTTP_TRACKER_URL` env var.
 
 ## How detection works (heuristics)
 
@@ -173,6 +175,7 @@ UI can point at a different server via the `ws` query param (e.g. `?token=dev&ws
 - **Streaming / non-serializable bodies** (`SSE`, `ReadableStream`, `FormData`, `Blob`) are not captured (marked `streaming`/`bodyTruncated` as appropriate).
 - **Dev-only injection.** The Vite plugin has `apply: "serve"` — it injects the agent only in dev, not in production builds.
 - **WSL networking.** The server binds `127.0.0.1`. In WSL2, access it via `localhost` forwarding (Windows browser → WSL), not the WSL IP, unless the server binds a non-loopback interface.
+- **Local-only security.** The default server is intended for local development. Keep the token private, and do not expose the server beyond the loopback interface without adding an explicit security boundary.
 
 ## Agent guide
 
