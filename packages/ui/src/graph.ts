@@ -123,12 +123,14 @@ export function groupRecords(
 
 export interface RecordFilter {
   method?: string;
+  transport?: RequestRecord["transport"];
   status?: string;
   url?: string;
 }
 
 export function matchesFilter(record: RequestRecord, f: RecordFilter): boolean {
   if (f.method && record.method.toUpperCase() !== f.method.toUpperCase()) return false;
+  if (f.transport && record.transport !== f.transport) return false;
   if (f.status && String(record.status) !== f.status) return false;
   if (f.url && !record.url.toLowerCase().includes(f.url.toLowerCase())) return false;
   return true;

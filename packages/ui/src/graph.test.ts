@@ -23,6 +23,7 @@ const mk = (partial: Partial<RequestRecord>): RequestRecord => ({
   strictMode: partial.strictMode ?? false,
   batchId: partial.batchId,
   poolId: partial.poolId,
+  transport: partial.transport,
 });
 
 describe("methodColor", () => {
@@ -59,6 +60,15 @@ describe("matchesFilter", () => {
       ["c"],
     );
     expect(recs.filter((r) => matchesFilter(r, {})).length).toBe(3);
+  });
+  test("filters by transport", () => {
+    const streams = [
+      mk({ requestId: "sse", transport: "sse" }),
+      mk({ requestId: "ws", transport: "websocket" }),
+    ];
+    expect(
+      streams.filter((r) => matchesFilter(r, { transport: "sse" })).map((r) => r.requestId),
+    ).toEqual(["sse"]);
   });
 });
 

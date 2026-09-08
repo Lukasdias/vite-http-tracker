@@ -10,7 +10,7 @@ export function Legend({ domains, onClose }: LegendProps) {
   const { t } = useI18n();
   if (!domains.length) return null;
   return (
-    <div className="absolute bottom-4 left-4 z-30 w-56 rounded-box border border-base-300 bg-base-100/95 p-3 shadow-lg backdrop-blur">
+    <div className="absolute bottom-4 left-4 z-30 w-64 rounded-box border border-base-300 bg-base-100/95 p-3 shadow-lg backdrop-blur">
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-base-content/60">
           {t("domains")}
@@ -32,6 +32,29 @@ export function Legend({ domains, onClose }: LegendProps) {
           </li>
         ))}
       </ul>
+      <div className="mt-3 border-t border-base-300 pt-3">
+        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-base-content/60">
+          {t("signals")}
+        </h3>
+        <ul className="space-y-1.5 text-xs text-base-content/75">
+          <li className="flex items-center gap-2">
+            <span className="badge badge-error badge-xs" />
+            {t("failure")}
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="badge badge-warning badge-xs" />
+            {t("timeout")}
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="badge badge-info badge-xs" />
+            {t("pool")}
+          </li>
+          <li className="flex items-center gap-2">
+            <span className="badge badge-ghost badge-xs">SSE/WS</span>
+            {t("transport")}
+          </li>
+        </ul>
+      </div>
     </div>
   );
 }

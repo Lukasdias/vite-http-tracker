@@ -62,7 +62,8 @@ function ToolButton({
   title: string;
   children: ReactNode;
 }) {
-  const base = "grid size-7 place-items-center rounded-md border transition-colors";
+  const base =
+    "grid size-7 place-items-center rounded-md border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
   let state =
     "border-base-300 bg-base-200/40 text-base-content/70 hover:bg-base-200 hover:text-base-content";
   if (active) state = "border-primary/50 bg-primary/15 text-primary";
@@ -119,6 +120,7 @@ export function Header({
   duplicates,
 }: HeaderProps) {
   const { locale, locales, localeLabels, setLocale, t } = useI18n();
+  const hasFilters = Boolean(filter.method || filter.transport || filter.status || filter.url);
   return (
     <header className="relative z-20 shrink-0 border-b border-base-300/70 bg-base-100/90 backdrop-blur">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
@@ -146,7 +148,7 @@ export function Header({
         <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-2">
           <div className="flex items-center gap-1.5">
             <select
-              className="select select-sm select-bordered"
+              className="select select-sm select-bordered focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               value={filter.method ?? ""}
               onChange={(e) => onChange({ ...filter, method: e.target.value || undefined })}
               aria-label={t("allMethods")}
@@ -158,14 +160,33 @@ export function Header({
                 </option>
               ))}
             </select>
+            <select
+              className="select select-sm select-bordered focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              value={filter.transport ?? ""}
+              onChange={(e) => {
+                const value = e.target.value;
+                const transport =
+                  value === "fetch" || value === "xhr" || value === "sse" || value === "websocket"
+                    ? value
+                    : undefined;
+                onChange({ ...filter, transport });
+              }}
+              aria-label={t("allTransports")}
+            >
+              <option value="">{t("allTransports")}</option>
+              <option value="fetch">{t("transportHttp")}</option>
+              <option value="xhr">XHR</option>
+              <option value="sse">{t("transportSse")}</option>
+              <option value="websocket">{t("transportWebsocket")}</option>
+            </select>
             <input
-              className="input input-sm input-bordered w-16"
+              className="input input-sm input-bordered w-16 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
               value={filter.status ?? ""}
               placeholder="404"
               onChange={(e) => onChange({ ...filter, status: e.target.value || undefined })}
               aria-label="Status"
             />
-            <label className="input input-sm input-bordered flex w-40 items-center gap-1.5 text-base-content/60">
+            <label className="input input-sm input-bordered flex w-40 items-center gap-1.5 text-base-content/60 focus-within:ring-2 focus-within:ring-primary">
               <MagnifyingGlassIcon className="size-3.5" />
               <input
                 className="min-w-0 grow bg-transparent p-0 text-base-content focus:outline-none focus:ring-0"
@@ -175,6 +196,15 @@ export function Header({
                 aria-label="URL"
               />
             </label>
+            {hasFilters && (
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                onClick={() => onChange({})}
+              >
+                {t("clearFilters")}
+              </button>
+            )}
           </div>
 
           <ToolButton
@@ -229,7 +259,7 @@ export function Header({
           </label>
           <select
             id="language-select"
-            className="select select-sm select-bordered w-28"
+            className="select select-sm select-bordered w-28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             value={locale}
             onChange={(event) => {
               if (isLocale(event.target.value)) setLocale(event.target.value);
