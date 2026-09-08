@@ -1,5 +1,6 @@
 import type { RequestRecord } from "@vite-http-tracker/shared";
-import { CopyIcon } from "@radix-ui/react-icons";
+import { useState } from "react";
+import { ChatBubbleIcon, CopyIcon } from "@radix-ui/react-icons";
 import { toast } from "sonner";
 import { toCurl } from "../curl.js";
 import { methodColor, statusClass, type RecordGroup } from "../graph.js";
@@ -7,10 +8,12 @@ import { domainOf, pathOf } from "../grouping.js";
 import { queryParams } from "../json.js";
 import { BodyViewer, KeyValueRows } from "./BodyViewer.js";
 import { useI18n } from "../i18n.js";
+import { buildAiContext, copyText } from "../context.js";
 
 export interface InspectPanelProps {
   group: RecordGroup | null;
   record: RequestRecord | null;
+  contextRecords: RequestRecord[];
   onClose: () => void;
 }
 
@@ -60,8 +63,9 @@ function SectionHeader({ title, mime }: { title: string; mime?: string }) {
   );
 }
 
-export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
+export function InspectPanel({ group, record, contextRecords, onClose }: InspectPanelProps) {
   const { t } = useI18n();
+  const [redactSensitive, setRedactSensitive] = useState(true);
   if (!record) {
     return (
       <aside className="flex h-full items-center justify-center text-sm text-base-content/50">
@@ -76,20 +80,13 @@ export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
 
   const copyCurl = async () => {
     const cmd = toCurl(record);
-    try {
-      await navigator.clipboard.writeText(cmd);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = cmd;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-    }
+    await copyText(cmd);
     toast.success(t("curlCopied"));
+  };
+
+  const copyAiContext = async () => {
+    await copyText(buildAiContext(record, group, contextRecords, redactSensitive));
+    toast.success(t("aiContextCopied"));
   };
 
   return (
@@ -188,10 +185,31 @@ export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
         />
       </section>
       <div className="sticky bottom-0 border-t border-base-300 bg-base-100 p-3">
-        <button type="button" className="btn btn-primary btn-sm w-full" onClick={copyCurl}>
-          <CopyIcon className="size-3.5" />
-          {t("copyCurl")}
-        </button>
+        <div className="grid gap-2">
+          <label className="flex cursor-pointer items-center justify-between gap-3 rounded-box border border-base-300 bg-base-200/50 px-3 py-2 text-xs">
+            <span className="min-w-0">
+              <span className="block font-medium">{t("hideSensitiveData")}</span>
+              {!redactSensitive && (
+                <span className="block text-warning">{t("sensitiveDataWarning")}</span>
+              )}
+            </span>
+            <input
+              type="checkbox"
+              className="toggle toggle-sm toggle-primary"
+              checked={redactSensitive}
+              onChange={(event) => setRedactSensitive(event.target.checked)}
+              aria-label={t("hideSensitiveData")}
+            />
+          </label>
+          <button type="button" className="btn btn-primary btn-sm w-full" onClick={copyAiContext}>
+            <ChatBubbleIcon className="size-3.5" aria-hidden="true" />
+            {t("copyAiContext")}
+          </button>
+          <button type="button" className="btn btn-ghost btn-sm w-full" onClick={copyCurl}>
+            <CopyIcon className="size-3.5" aria-hidden="true" />
+            {t("copyCurl")}
+          </button>
+        </div>
       </div>
     </aside>
   );

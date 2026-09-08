@@ -212,6 +212,7 @@ function Dashboard() {
           <InspectPanel
             group={selectedGroup}
             record={selected}
+            contextRecords={groups.flatMap((group) => group.members)}
             onClose={() => setSelectedId(null)}
           />
         </div>
