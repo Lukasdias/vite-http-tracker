@@ -15,6 +15,7 @@ import type { JsonGraphNode } from "../json-graph.js";
 import { parseJson } from "../json.js";
 import { JsonContainerNode, type JsonContainerFlowNode } from "./JsonContainerNode.js";
 import { JsonScalarNode, type JsonScalarFlowNode } from "./JsonScalarNode.js";
+import { useI18n } from "../i18n.js";
 
 const EDGE_COLOR = "#54a7ff";
 const nodeTypes = { container: JsonContainerNode, scalar: JsonScalarNode };
@@ -68,6 +69,7 @@ function GraphCanvas({ nodes, edges }: { nodes: JsonFlowNode[]; edges: Edge[] })
 }
 
 export function JsonGraphView({ record, onBack }: { record: RequestRecord; onBack: () => void }) {
+  const { t } = useI18n();
   const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
   const raw = record.responseBody ?? record.requestBody;
 
@@ -97,33 +99,35 @@ export function JsonGraphView({ record, onBack }: { record: RequestRecord; onBac
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-2 border-b border-base-300 px-3 py-2">
         <button type="button" className="btn btn-ghost btn-sm" onClick={onBack}>
-          ← back
+          ← {t("back")}
         </button>
         <button
           type="button"
           className="btn btn-ghost btn-sm"
           onClick={() => setCollapsed(new Set())}
         >
-          expand all
+          {t("expandAll")}
         </button>
         <button type="button" className="btn btn-ghost btn-sm" onClick={collapseAll}>
-          collapse
+          {t("collapse")}
         </button>
         <span className="text-[10px] text-base-content/50">
-          {record.responseBody ? "response" : "request"} body
+          {record.responseBody ? t("responseBody") : t("requestBody")}
         </span>
-        {record.bodyTruncated && <span className="text-[10px] text-warning">truncated</span>}
-        {record.opaque && <span className="text-[10px] text-base-content/50">opaque</span>}
-        {record.streaming && <span className="text-[10px] text-base-content/50">streaming</span>}
+        {record.bodyTruncated && <span className="text-[10px] text-warning">{t("truncated")}</span>}
+        {record.opaque && <span className="text-[10px] text-base-content/50">{t("opaque")}</span>}
+        {record.streaming && (
+          <span className="text-[10px] text-base-content/50">{t("streaming")}</span>
+        )}
       </div>
       <div className="min-h-0 flex-1">
         {!bodyIsJson ? (
           <div className="flex h-full items-center justify-center text-sm text-base-content/50">
-            response is not JSON
+            {t("responseNotJson")}
           </div>
         ) : !graph || !graph.ok ? (
           <div className="flex h-full flex-col items-center justify-center gap-2 text-sm text-base-content/50">
-            <span>large object — body too large for graph view</span>
+            <span>{t("largeObject")}</span>
           </div>
         ) : (
           <ReactFlowProvider>

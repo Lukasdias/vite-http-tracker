@@ -8,6 +8,7 @@ import "@fontsource/ibm-plex-mono/400.css";
 import "@xyflow/react/dist/style.css";
 import "./styles.css";
 import { App } from "./App";
+import { I18nProvider } from "./i18n.js";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -22,7 +23,9 @@ const root = document.getElementById("root");
 if (root)
   createRoot(root).render(
     <QueryClientProvider client={queryClient}>
-      <App />
+      <I18nProvider>
+        <App />
+      </I18nProvider>
       <Toaster theme="dark" position="bottom-left" richColors />
     </QueryClientProvider>,
   );
