@@ -20,6 +20,11 @@ Bun workspaces (`package.json` → `workspaces: ["packages/*", "apps/*"]`).
 | `packages/ui` | React 19 dashboard. React Flow timeline, filters, inspector, dedup/batch logic. |
 | `packages/plugin` | Vite plugin `viteHttpTracker()`. Auto-injects agent, detects Strict Mode at build time. |
 | `apps/react-app` | Sample Vite + React 19 app with per-scenario buttons. |
+| `apps/vue-app` | Sample Vite + Vue 3 app for manual plugin verification. |
+| `apps/solid-app` | Sample Vite + Solid app for manual plugin verification. |
+| `apps/svelte-app` | Sample Vite + Svelte 5 app for manual plugin verification. |
+| `apps/preact-app` | Sample Vite + Preact app for manual plugin verification. |
+| `apps/vanilla-app` | Sample plain TypeScript Vite app for manual plugin verification. |
 | `packages/ui/dist` | Built dashboard bundle, served by the server (SPA fallback). |
 
 ## Commands
@@ -35,7 +40,7 @@ bun run packages/server/src/cli.ts --no-open   # run the tracker server
 bun run --cwd apps/react-app dev   # run the sample app
 ```
 
-Typecheck is per-package: `packages/shared`, `packages/agent`, `packages/server`, `packages/ui`, `packages/plugin`, `apps/react-app` all extend `tsconfig.base.json`. The root `tsconfig.json` only covers the Node/browser packages (it excludes `packages/ui` and `apps/*`, which have their own configs) because mixing a React app's TSX with Bun-only types causes unresolved-global errors.
+Typecheck is per-package: `packages/shared`, `packages/agent`, `packages/server`, `packages/ui`, `packages/plugin`, and all apps under `apps/` extend `tsconfig.base.json`. The root `tsconfig.json` only covers the Node/browser packages (it excludes `packages/ui` and `apps/*`, which have their own configs) because mixing a React app's TSX with Bun-only types causes unresolved-global errors.
 
 ## Architecture
 

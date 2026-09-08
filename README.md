@@ -64,6 +64,11 @@ The agent can also be wired up manually in a Vite app — `import { initAgent } 
 | `packages/ui` | React 19 dashboard: React Flow timeline, filters, inspector, dedup/batch logic. |
 | `packages/plugin` | Vite plugin `viteHttpTracker()`: auto-injects the agent into the dev build and detects Strict Mode from source. |
 | `apps/react-app` | Sample React 19 app (per-scenario buttons) used to exercise the tool. |
+| `apps/vue-app` | Sample Vue 3 app used to manually verify Vite injection. |
+| `apps/solid-app` | Sample Solid app used to manually verify Vite injection. |
+| `apps/svelte-app` | Sample Svelte 5 app used to manually verify Vite injection. |
+| `apps/preact-app` | Sample Preact app used to manually verify Vite injection. |
+| `apps/vanilla-app` | Plain TypeScript Vite app used to verify framework-independent injection. |
 
 ## Getting started
 
@@ -84,6 +89,10 @@ bun run --cwd apps/react-app dev
 ```
 
 Open the dashboard at <http://localhost:4000/?token=dev> and the sample at <http://localhost:5173>. In the sample, click a scenario (e.g. `Chain`) to emit HTTP calls; watch them appear on the dashboard timeline.
+
+The repository also includes Vite fixtures for Vue, Solid, Svelte, Preact, and vanilla TypeScript. Start any fixture with `bun run --cwd apps/<name> dev`; they use ports `5174` through `5178` respectively. These are intended for manual browser checks of plugin injection and request capture across Vite frontend stacks.
+
+To start the tracker and a fixture together, use `bun run dev:all:<fixture>` where `<fixture>` is `react`, `vue`, `solid`, `svelte`, `preact`, or `vanilla`.
 
 ### Use on your own Vite app
 

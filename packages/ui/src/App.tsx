@@ -60,6 +60,7 @@ function FlowCanvas({
       onEdgesChange={onEdgesChange}
       nodeTypes={nodeTypes}
       fitView
+      nodesDraggable={false}
       colorMode="dark"
       onNodeClick={(_, node) => onNodeClick(node.id)}
     >
