@@ -6,6 +6,7 @@ import { methodColor, statusClass, type RecordGroup } from "../graph.js";
 import { domainOf, pathOf } from "../grouping.js";
 import { queryParams } from "../json.js";
 import { BodyViewer, KeyValueRows } from "./BodyViewer.js";
+import { useI18n } from "../i18n.js";
 
 export interface InspectPanelProps {
   group: RecordGroup | null;
@@ -60,10 +61,11 @@ function SectionHeader({ title, mime }: { title: string; mime?: string }) {
 }
 
 export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
+  const { t } = useI18n();
   if (!record) {
     return (
       <aside className="flex h-full items-center justify-center text-sm text-base-content/50">
-        Select a request to inspect
+        {t("selectRequest")}
       </aside>
     );
   }
@@ -87,7 +89,7 @@ export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
       document.execCommand("copy");
       document.body.removeChild(ta);
     }
-    toast.success("cURL copied!");
+    toast.success(t("curlCopied"));
   };
 
   return (
@@ -99,23 +101,30 @@ export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
             {record.method} <span className="font-normal break-all">{pathOf(record.url)}</span>
           </div>
           <div className="mt-1 text-xs text-base-content/70">
-            Status {record.status} · {record.duration}ms · {record.bodySizeBytes ?? 0} B
+            {t("statusSummary", {
+              status: record.status,
+              duration: record.duration,
+              bytes: record.bodySizeBytes ?? 0,
+            })}
           </div>
           {isGroup && (
             <div className="badge badge-outline badge-sm mt-2 text-warning">
-              ×{members.length} duplicate{members.length > 1 ? "s" : ""}
-              {group?.strictMode ? " · Strict Mode" : ""}
+              {t("duplicateCount", {
+                count: members.length,
+                suffix: members.length > 1 ? "s" : "",
+              })}
+              {group?.strictMode ? ` · ${t("strictMode")}` : ""}
             </div>
           )}
         </div>
-        <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Close">
+        <button className="btn btn-ghost btn-sm" onClick={onClose} aria-label={t("close")}>
           ×
         </button>
       </header>
 
       {isGroup && (
         <section className="border-b border-base-300 p-3">
-          <SectionHeader title="Duplicate requests" />
+          <SectionHeader title={t("duplicateRequests")} />
           <ul className="space-y-1">
             {members.map((m, i) => (
               <li
@@ -138,25 +147,25 @@ export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
 
       {query && (
         <section className="border-b border-base-300 p-3">
-          <SectionHeader title="Query params" />
+          <SectionHeader title={t("queryParams")} />
           <KeyValueRows rows={query} />
         </section>
       )}
 
       <section className="border-b border-base-300 p-3">
-        <SectionHeader title="Request headers" />
+        <SectionHeader title={t("requestHeaders")} />
         {headersTable(record.requestHeaders ?? {})}
       </section>
       <section className="border-b border-base-300 p-3">
-        <SectionHeader title="Response headers" />
+        <SectionHeader title={t("responseHeaders")} />
         {headersTable(record.responseHeaders ?? {})}
       </section>
       <section className="border-b border-base-300 p-3">
-        <SectionHeader title="Request body" mime={mimeOf(record.requestHeaders)} />
+        <SectionHeader title={t("requestBody")} mime={mimeOf(record.requestHeaders)} />
         <BodyViewer raw={record.requestBody} />
       </section>
       <section className="p-3">
-        <SectionHeader title="Response body" mime={mimeOf(record.responseHeaders)} />
+        <SectionHeader title={t("responseBody")} mime={mimeOf(record.responseHeaders)} />
         <BodyViewer
           raw={record.responseBody}
           truncated={record.bodyTruncated}
@@ -167,7 +176,7 @@ export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
       <div className="sticky bottom-0 border-t border-base-300 bg-base-100 p-3">
         <button type="button" className="btn btn-primary btn-sm w-full" onClick={copyCurl}>
           <CopyIcon className="size-3.5" />
-          Copy as cURL
+          {t("copyCurl")}
         </button>
       </div>
     </aside>

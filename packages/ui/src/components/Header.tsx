@@ -12,6 +12,7 @@ import {
 } from "@radix-ui/react-icons";
 import { Logo } from "./Logo.js";
 import type { Orientation, RecordFilter } from "../graph.js";
+import { isLocale, useI18n } from "../i18n.js";
 
 export interface HeaderProps {
   connected: boolean;
@@ -80,6 +81,7 @@ function ToolButton({
 }
 
 function ConnectionBadge({ connected }: { connected: boolean }) {
+  const { t } = useI18n();
   return (
     <div className="flex items-center gap-2 rounded-full border border-base-300 bg-base-200/50 px-2.5 py-1.5">
       <span className="relative flex size-2">
@@ -91,7 +93,7 @@ function ConnectionBadge({ connected }: { connected: boolean }) {
         />
       </span>
       <span className="font-mono text-[10px] uppercase tracking-widest text-base-content/70">
-        {connected ? "live" : "offline"}
+        {connected ? t("live") : t("offline")}
       </span>
     </div>
   );
@@ -116,6 +118,7 @@ export function Header({
   batches,
   duplicates,
 }: HeaderProps) {
+  const { locale, locales, localeLabels, setLocale, t } = useI18n();
   return (
     <header className="relative z-20 shrink-0 border-b border-base-300/70 bg-base-100/90 backdrop-blur">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
@@ -134,10 +137,10 @@ export function Header({
         </div>
 
         <div className="flex items-center divide-x divide-base-300/60">
-          <Stat value={total} label="requests" />
-          <Stat value={visible} label="shown" />
-          <Stat value={batches} label="batches" />
-          <Stat value={duplicates} label="dupes" />
+          <Stat value={total} label={t("requests")} />
+          <Stat value={visible} label={t("shown")} />
+          <Stat value={batches} label={t("batches")} />
+          <Stat value={duplicates} label={t("dupes")} />
         </div>
 
         <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -146,9 +149,9 @@ export function Header({
               className="select select-sm select-bordered"
               value={filter.method ?? ""}
               onChange={(e) => onChange({ ...filter, method: e.target.value || undefined })}
-              aria-label="Method"
+              aria-label={t("allMethods")}
             >
-              <option value="">All methods</option>
+              <option value="">{t("allMethods")}</option>
               {METHODS.map((m) => (
                 <option key={m} value={m}>
                   {m}
@@ -167,7 +170,7 @@ export function Header({
               <input
                 className="min-w-0 grow bg-transparent p-0 text-base-content focus:outline-none focus:ring-0"
                 value={filter.url ?? ""}
-                placeholder="search url"
+                placeholder={t("searchUrl")}
                 onChange={(e) => onChange({ ...filter, url: e.target.value || undefined })}
                 aria-label="URL"
               />
@@ -177,7 +180,7 @@ export function Header({
           <ToolButton
             active={showEdges}
             onClick={() => onShowEdges(!showEdges)}
-            title="Show timeline edges"
+            title={t("showTimelineEdges")}
           >
             <Link2Icon className={icon} />
           </ToolButton>
@@ -185,7 +188,7 @@ export function Header({
           <ToolButton
             active={showLegend}
             onClick={() => onShowLegend(!showLegend)}
-            title="Show domain legend"
+            title={t("showDomainLegend")}
           >
             <LayersIcon className={icon} />
           </ToolButton>
@@ -194,34 +197,53 @@ export function Header({
             <ToolButton
               active={orientation === "horizontal"}
               onClick={() => onOrientation("horizontal")}
-              title="Horizontal orientation"
+              title={t("horizontalOrientation")}
             >
               <ArrowRightIcon className={icon} />
             </ToolButton>
             <ToolButton
               active={orientation === "vertical"}
               onClick={() => onOrientation("vertical")}
-              title="Vertical orientation"
+              title={t("verticalOrientation")}
             >
               <ArrowDownIcon className={icon} />
             </ToolButton>
           </div>
 
           <div className="flex gap-1">
-            <ToolButton onClick={onZoomOut} title="Zoom out">
+            <ToolButton onClick={onZoomOut} title={t("zoomOut")}>
               <ZoomOutIcon className={icon} />
             </ToolButton>
-            <ToolButton onClick={onFitView} title="Fit view">
+            <ToolButton onClick={onFitView} title={t("fitView")}>
               <EnterFullScreenIcon className={icon} />
             </ToolButton>
-            <ToolButton onClick={onZoomIn} title="Zoom in">
+            <ToolButton onClick={onZoomIn} title={t("zoomIn")}>
               <ZoomInIcon className={icon} />
             </ToolButton>
           </div>
 
           <ConnectionBadge connected={connected} />
 
-          <ToolButton danger onClick={onClear} title="Clear requests">
+          <label className="sr-only" htmlFor="language-select">
+            {t("language")}
+          </label>
+          <select
+            id="language-select"
+            className="select select-sm select-bordered w-28"
+            value={locale}
+            onChange={(event) => {
+              if (isLocale(event.target.value)) setLocale(event.target.value);
+            }}
+            aria-label={t("language")}
+          >
+            {locales.map((option) => (
+              <option key={option} value={option}>
+                {localeLabels[option]}
+              </option>
+            ))}
+          </select>
+
+          <ToolButton danger onClick={onClear} title={t("clearRequests")}>
             <TrashIcon className={icon} />
           </ToolButton>
         </div>

@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { countNodes, parseJson, parseParams } from "../json.js";
 import { JsonViewer } from "./JsonViewer.js";
+import { useI18n } from "../i18n.js";
 
 export interface BodyViewerProps {
   raw?: string;
@@ -40,6 +41,7 @@ export function KeyValueRows({ rows }: { rows: { key: string; value: string }[] 
 }
 
 export function BodyViewer({ raw, truncated, opaque, streaming }: BodyViewerProps) {
+  const { t } = useI18n();
   const [structured, setStructured] = useState(true);
   const [forceTree, setForceTree] = useState(false);
 
@@ -54,17 +56,17 @@ export function BodyViewer({ raw, truncated, opaque, streaming }: BodyViewerProp
     <div className="space-y-2">
       {truncated && (
         <div className="rounded-box border border-warning/30 bg-warning/10 px-2 py-1 text-[10px] text-warning">
-          body truncated — content capped, partial data shown
+          {t("bodyTruncated")}
         </div>
       )}
       {streaming && (
         <div className="rounded-box border border-base-300 bg-base-200/50 px-2 py-1 text-[10px] text-base-content/60">
-          streaming response — body not captured
+          {t("streamingResponse")}
         </div>
       )}
       {opaque && (
         <div className="rounded-box border border-base-300 bg-base-200/50 px-2 py-1 text-[10px] text-base-content/60">
-          opaque body — unreadable (opaque/CORS)
+          {t("opaqueBody")}
         </div>
       )}
 
@@ -74,13 +76,13 @@ export function BodyViewer({ raw, truncated, opaque, streaming }: BodyViewerProp
         <div>
           {canStructure && isBigJson && !forceTree && (
             <div className="mb-1 flex items-center gap-2 rounded-box border border-base-300 bg-base-200/40 px-2 py-1 text-[10px] text-base-content/70">
-              <span>large object ({info?.nodes?.toLocaleString()} nodes) - showing raw</span>
+              <span>{t("largeObjectRaw", { nodes: info?.nodes?.toLocaleString() ?? 0 })}</span>
               <button
                 type="button"
                 className="btn btn-ghost btn-xs"
                 onClick={() => setForceTree(true)}
               >
-                view structure
+                {t("viewStructure")}
               </button>
             </div>
           )}
@@ -101,14 +103,14 @@ export function BodyViewer({ raw, truncated, opaque, streaming }: BodyViewerProp
             className={`btn btn-ghost btn-xs ${structured ? "btn-active" : ""}`}
             onClick={() => setStructured(true)}
           >
-            structure
+            {t("structure")}
           </button>
           <button
             type="button"
             className={`btn btn-ghost btn-xs ${structured ? "" : "btn-active"}`}
             onClick={() => setStructured(false)}
           >
-            raw
+            {t("raw")}
           </button>
         </div>
       )}

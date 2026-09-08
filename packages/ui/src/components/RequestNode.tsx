@@ -4,6 +4,7 @@ import { LightningBoltIcon } from "@radix-ui/react-icons";
 import type { RequestRecord } from "@vite-http-tracker/shared";
 import { methodColor, statusClass, type Orientation } from "../graph.js";
 import { pathOf } from "../grouping.js";
+import { useI18n } from "../i18n.js";
 
 export interface RequestNodeData extends Record<string, unknown> {
   record: RequestRecord;
@@ -29,6 +30,7 @@ function formatBytes(bytes: number): string {
 }
 
 export function RequestNode({ data }: NodeProps<RequestFlowNode>) {
+  const { t } = useI18n();
   const { record, dupCount, strictMode, batchSize, orientation } = data;
   const isBatch = (batchSize ?? 0) > 1;
   const targetHandle = orientation === "vertical" ? Position.Top : Position.Left;
@@ -70,7 +72,7 @@ export function RequestNode({ data }: NodeProps<RequestFlowNode>) {
       </div>
       {strictMode && dupCount > 1 && (
         <div className="mt-1 text-[10px] font-medium uppercase tracking-wide text-warning">
-          likely strict mode
+          {t("likelyStrictMode")}
         </div>
       )}
       <Handle type="source" position={sourceHandle} />
