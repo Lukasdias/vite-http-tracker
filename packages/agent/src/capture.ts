@@ -8,6 +8,11 @@ export function newId(): string {
 
 let lastBatchStart = 0;
 let currentBatchId = "";
+let seqCounter = 0;
+
+export function nextSeq(): number {
+  return ++seqCounter;
+}
 
 export function batchFor(startTime: number, windowMs = BATCH_WINDOW_MS): string {
   if (startTime >= lastBatchStart && startTime - lastBatchStart <= windowMs) {

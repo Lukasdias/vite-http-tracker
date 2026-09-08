@@ -1,5 +1,5 @@
 import { type RequestRecord } from "@vite-http-tracker/shared";
-import { batchFor, hashRequest, newId, parseHeaders, serializeBody } from "./capture.js";
+import { batchFor, hashRequest, newId, nextSeq, parseHeaders, serializeBody } from "./capture.js";
 import { redactHeaders, redactString } from "./redact.js";
 
 interface XhrSink {
@@ -8,12 +8,12 @@ interface XhrSink {
 
 export function patchXhr(sink: XhrSink, strictMode = false): () => void {
   const Original = window.XMLHttpRequest;
-  let seqCounter = 0;
   const Patched = class extends Original {
-    private seq = ++seqCounter;
+    private seq = nextSeq();
     private start = 0;
     private url = "";
     private method = "";
+    private requestHeaders: Record<string, string> = {};
     private bodyResult = { body: undefined as string | undefined, truncated: false, size: 0 };
     open(method: string, url: string | URL): void {
       this.method = method.toUpperCase();
@@ -35,7 +35,7 @@ export function patchXhr(sink: XhrSink, strictMode = false): () => void {
           startTime: this.start,
           endTime: end,
           duration: end - this.start,
-          requestHeaders: {},
+          requestHeaders: redactHeaders(this.requestHeaders),
           responseHeaders: redactHeaders(
             parseHeaders(new Headers(this.getAllResponseHeaders() as unknown as HeadersInit)),
           ),
@@ -46,10 +46,16 @@ export function patchXhr(sink: XhrSink, strictMode = false): () => void {
           requestHash: hashRequest(this.method, this.url, pending.body),
           strictMode,
           batchId: batchFor(this.start),
+          transport: "xhr",
+          poolId: this.requestHeaders["x-http-tracker-pool-id"],
         };
         sink.enqueue(record);
       });
       super.send(body);
+    }
+    setRequestHeader(name: string, value: string): void {
+      this.requestHeaders[name.toLowerCase()] = value;
+      super.setRequestHeader(name, value);
     }
   } as unknown as typeof XMLHttpRequest;
 

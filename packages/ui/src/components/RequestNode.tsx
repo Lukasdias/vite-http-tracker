@@ -12,6 +12,7 @@ export interface RequestNodeData extends Record<string, unknown> {
   strictMode: boolean;
   memberIds: string[];
   batchSize?: number;
+  poolSize?: number;
   orientation?: Orientation;
 }
 
@@ -31,14 +32,25 @@ function formatBytes(bytes: number): string {
 
 export function RequestNode({ data }: NodeProps<RequestFlowNode>) {
   const { t } = useI18n();
-  const { record, dupCount, strictMode, batchSize, orientation } = data;
+  const { record, dupCount, strictMode, batchSize, poolSize, orientation } = data;
   const isBatch = (batchSize ?? 0) > 1;
   const targetHandle = orientation === "vertical" ? Position.Top : Position.Left;
   const sourceHandle = orientation === "vertical" ? Position.Bottom : Position.Right;
+  const isTimeout = record.timedOut === true;
+  const isFailure = !isTimeout && statusClass(record.status) === "error";
+  const transportLabel = record.transport === "websocket" ? "WS" : record.transport?.toUpperCase();
 
   return (
     <div
-      className={`min-w-48 rounded-box border bg-base-200 p-2 shadow ${isBatch ? "border-dashed border-warning/60" : "border-base-300"}`}
+      className={`min-w-48 rounded-box border bg-base-200 p-2 shadow transition-colors ${
+        isFailure
+          ? "border-error/70 bg-error/5"
+          : record.poolId && (poolSize ?? 0) > 1
+            ? "border-info/50 bg-info/5"
+            : isBatch
+              ? "border-dashed border-warning/60"
+              : "border-base-300"
+      }`}
     >
       <Handle type="target" position={targetHandle} />{" "}
       <div className="flex items-center gap-2">
@@ -51,8 +63,10 @@ export function RequestNode({ data }: NodeProps<RequestFlowNode>) {
         >
           {record.method}
         </span>
-        <span className={`badge badge-sm ${statusBadge[statusClass(record.status)]}`}>
-          {record.status}
+        <span
+          className={`badge badge-sm ${isTimeout ? "badge-warning" : statusBadge[statusClass(record.status)]}`}
+        >
+          {record.status || "ERR"}
         </span>
         {dupCount > 1 && (
           <span className="badge badge-outline badge-sm text-base-content/70">×{dupCount}</span>
@@ -63,13 +77,22 @@ export function RequestNode({ data }: NodeProps<RequestFlowNode>) {
             {batchSize}
           </span>
         )}
+        {record.poolId && (poolSize ?? 0) > 1 && (
+          <span className="badge badge-outline badge-sm text-info">pool:{record.poolId}</span>
+        )}
+        {transportLabel && (
+          <span className="badge badge-ghost badge-sm" title={record.transport}>
+            {transportLabel}
+          </span>
+        )}
       </div>
       <div className="mt-1 max-w-56 truncate text-xs mono">{pathOf(record.url)}</div>
       <div className="mt-1 flex items-center gap-2 text-xs text-base-content/60">
-        <span className="mono">{record.duration}ms</span>
+        <span className="mono">{record.timedOut ? "timeout" : `${record.duration}ms`}</span>
         <span className="mono">·</span>
         <span className="mono">{formatBytes(record.bodySizeBytes ?? 0)}</span>
       </div>
+      {record.error && <div className="mt-1 truncate text-[10px] text-error">{record.error}</div>}
       {strictMode && dupCount > 1 && (
         <div className="mt-1 text-[10px] font-medium uppercase tracking-wide text-warning">
           {t("likelyStrictMode")}

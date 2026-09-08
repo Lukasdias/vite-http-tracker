@@ -1,8 +1,6 @@
 import { type RequestRecord, DEFAULT_BODY_CAP } from "@vite-http-tracker/shared";
-import { batchFor, hashRequest, newId, parseHeaders, serializeBody } from "./capture.js";
+import { batchFor, hashRequest, newId, nextSeq, parseHeaders, serializeBody } from "./capture.js";
 import { redactHeaders, redactString } from "./redact.js";
-
-let seqCounter = 0;
 
 interface FetchSink {
   enqueue(r: RequestRecord): void;
@@ -17,55 +15,84 @@ export function patchFetch(sink: FetchSink, strictMode = false): () => void {
     const startTime = Date.now();
     const bodyResult = serializeBody(init?.body);
     const requestHash = hashRequest(method, url, bodyResult.body);
-    const seq = ++seqCounter;
+    const seq = nextSeq();
+    const requestHeaders = parseHeaders(new Headers(init?.headers ?? {}));
+    const poolId = requestHeaders["x-http-tracker-pool-id"];
 
-    return original(input, init).then(async (res) => {
-      const endTime = Date.now();
-      const bodySize = res.headers.get("content-length");
-      let responseBody: string | undefined;
-      let truncated = false;
-      let opaque = false;
-      let streaming = false;
-      try {
-        const ct = res.headers.get("content-type") ?? "";
-        if (ct.includes("text/event-stream")) {
-          streaming = true;
-        } else if (bodySize && Number(bodySize) > DEFAULT_BODY_CAP) {
-          truncated = true;
-        } else if (res.body) {
-          responseBody = String(await res.clone().text());
-          if (responseBody.length > DEFAULT_BODY_CAP) {
-            responseBody = undefined;
+    return original(input, init)
+      .then(async (res) => {
+        const endTime = Date.now();
+        const bodySize = res.headers.get("content-length");
+        let responseBody: string | undefined;
+        let truncated = false;
+        let opaque = false;
+        let streaming = false;
+        try {
+          const ct = res.headers.get("content-type") ?? "";
+          if (ct.includes("text/event-stream")) {
+            streaming = true;
+          } else if (bodySize && Number(bodySize) > DEFAULT_BODY_CAP) {
             truncated = true;
+          } else if (res.body) {
+            responseBody = String(await res.clone().text());
+            if (responseBody.length > DEFAULT_BODY_CAP) {
+              responseBody = undefined;
+              truncated = true;
+            }
           }
+        } catch {
+          opaque = true;
         }
-      } catch {
-        opaque = true;
-      }
-      const record: RequestRecord = {
-        requestId: newId(),
-        seq,
-        method,
-        url,
-        status: res.status,
-        startTime,
-        endTime,
-        duration: endTime - startTime,
-        requestHeaders: redactHeaders(parseHeaders(new Headers(init?.headers ?? {}))),
-        responseHeaders: redactHeaders(parseHeaders(res.headers)),
-        requestBody: bodyResult.body ? redactString(bodyResult.body) : undefined,
-        responseBody: responseBody ? redactString(responseBody) : undefined,
-        bodyTruncated: truncated || bodyResult.truncated,
-        opaque,
-        streaming,
-        bodySizeBytes: responseBody ? responseBody.length : Number(bodySize ?? 0) || 0,
-        requestHash,
-        strictMode,
-        batchId: batchFor(startTime),
-      };
-      sink.enqueue(record);
-      return res;
-    });
+        const record: RequestRecord = {
+          requestId: newId(),
+          seq,
+          method,
+          url,
+          status: res.status,
+          startTime,
+          endTime,
+          duration: endTime - startTime,
+          requestHeaders: redactHeaders(parseHeaders(new Headers(init?.headers ?? {}))),
+          responseHeaders: redactHeaders(parseHeaders(res.headers)),
+          requestBody: bodyResult.body ? redactString(bodyResult.body) : undefined,
+          responseBody: responseBody ? redactString(responseBody) : undefined,
+          bodyTruncated: truncated || bodyResult.truncated,
+          opaque,
+          streaming,
+          bodySizeBytes: responseBody ? responseBody.length : Number(bodySize ?? 0) || 0,
+          requestHash,
+          strictMode,
+          batchId: batchFor(startTime),
+          transport: "fetch",
+          poolId,
+        };
+        sink.enqueue(record);
+        return res;
+      })
+      .catch((error: unknown) => {
+        const endTime = Date.now();
+        const timedOut = error instanceof DOMException && error.name === "AbortError";
+        sink.enqueue({
+          requestId: newId(),
+          seq,
+          method,
+          url,
+          status: 0,
+          startTime,
+          endTime,
+          duration: endTime - startTime,
+          requestHeaders: redactHeaders(requestHeaders),
+          requestBody: bodyResult.body ? redactString(bodyResult.body) : undefined,
+          requestHash,
+          strictMode,
+          batchId: batchFor(startTime),
+          transport: "fetch",
+          error: error instanceof Error ? error.message : String(error),
+          timedOut,
+          poolId,
+        });
+        throw error;
+      });
   };
   window.fetch = wrapped as typeof window.fetch;
   return () => {

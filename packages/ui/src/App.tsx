@@ -24,6 +24,7 @@ import { InspectPanel } from "./components/InspectPanel.js";
 import { JsonGraphView } from "./components/JsonGraphView.js";
 import { useTrackerToken } from "./hooks/useTrackerToken.js";
 import type { Orientation } from "./graph.js";
+import { useI18n } from "./i18n.js";
 
 const nodeTypes = { request: RequestNode, domain: DomainNode };
 const EDGE_COLOR = "#54a7ff";
@@ -70,6 +71,7 @@ function FlowCanvas({
 }
 
 function Dashboard() {
+  const { t } = useI18n();
   const token = useTrackerToken();
   const wsUrl = useMemo(() => {
     const env = import.meta.env.VITE_HTTP_TRACKER_URL as string | undefined;
@@ -84,6 +86,8 @@ function Dashboard() {
   const [graphRecordId, setGraphRecordId] = useState<string | null>(null);
   const [showLegend, setShowLegend] = useState(true);
   const { groups, domainNodes, nodes, edges } = useGraph(filter, showEdges, orientation);
+  const hasRequests = groups.length > 0;
+  const hasVisibleNodes = nodes.length > 0;
   const selected = useRequest(selectedId);
   const clear = useClearRequests(send);
   const { fitView, zoomIn, zoomOut } = useReactFlow();
@@ -111,6 +115,7 @@ function Dashboard() {
             strictMode: n.strictMode,
             memberIds: n.memberIds,
             batchSize: n.batchSize,
+            poolSize: n.poolSize,
             orientation,
           },
         };
@@ -181,6 +186,24 @@ function Dashboard() {
                   setGraphRecordId(id);
                 }}
               />
+              {!hasVisibleNodes && (
+                <div className="pointer-events-none absolute inset-0 grid place-items-center p-6">
+                  <div className="pointer-events-auto max-w-sm rounded-box border border-base-300 bg-base-100/95 p-5 text-center shadow-xl backdrop-blur">
+                    <div className="text-sm font-semibold">
+                      {hasRequests ? t("noMatchingRequests") : t("selectRequest")}
+                    </div>
+                    {hasRequests && (
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm mt-3"
+                        onClick={() => setFilter({})}
+                      >
+                        {t("clearFilters")}
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
               {showLegend && <Legend domains={domainNodes} onClose={() => setShowLegend(false)} />}
             </div>
           )}
@@ -189,6 +212,7 @@ function Dashboard() {
           <InspectPanel
             group={selectedGroup}
             record={selected}
+            contextRecords={groups.flatMap((group) => group.members)}
             onClose={() => setSelectedId(null)}
           />
         </div>

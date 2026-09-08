@@ -1,5 +1,7 @@
 import type { RequestRecord } from "@vite-http-tracker/shared";
-import { CopyIcon } from "@radix-ui/react-icons";
+import { useEffect, useState } from "react";
+import { ChatBubbleIcon, CheckIcon, CopyIcon } from "@radix-ui/react-icons";
+import { motion } from "motion/react";
 import { toast } from "sonner";
 import { toCurl } from "../curl.js";
 import { methodColor, statusClass, type RecordGroup } from "../graph.js";
@@ -7,10 +9,12 @@ import { domainOf, pathOf } from "../grouping.js";
 import { queryParams } from "../json.js";
 import { BodyViewer, KeyValueRows } from "./BodyViewer.js";
 import { useI18n } from "../i18n.js";
+import { buildAiContext, copyText } from "../context.js";
 
 export interface InspectPanelProps {
   group: RecordGroup | null;
   record: RequestRecord | null;
+  contextRecords: RequestRecord[];
   onClose: () => void;
 }
 
@@ -60,8 +64,16 @@ function SectionHeader({ title, mime }: { title: string; mime?: string }) {
   );
 }
 
-export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
+export function InspectPanel({ group, record, contextRecords, onClose }: InspectPanelProps) {
   const { t } = useI18n();
+  const [redactSensitive, setRedactSensitive] = useState(true);
+  const [aiContextCopied, setAiContextCopied] = useState(false);
+
+  useEffect(() => {
+    if (!aiContextCopied) return;
+    const timer = window.setTimeout(() => setAiContextCopied(false), 2_800);
+    return () => window.clearTimeout(timer);
+  }, [aiContextCopied]);
   if (!record) {
     return (
       <aside className="flex h-full items-center justify-center text-sm text-base-content/50">
@@ -76,20 +88,14 @@ export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
 
   const copyCurl = async () => {
     const cmd = toCurl(record);
-    try {
-      await navigator.clipboard.writeText(cmd);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = cmd;
-      ta.style.position = "fixed";
-      ta.style.opacity = "0";
-      document.body.appendChild(ta);
-      ta.focus();
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-    }
+    await copyText(cmd);
     toast.success(t("curlCopied"));
+  };
+
+  const copyAiContext = async () => {
+    await copyText(buildAiContext(record, group, contextRecords, redactSensitive));
+    setAiContextCopied(true);
+    toast.success(t("aiContextCopied"));
   };
 
   return (
@@ -102,11 +108,25 @@ export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
           </div>
           <div className="mt-1 text-xs text-base-content/70">
             {t("statusSummary", {
-              status: record.status,
+              status: record.status || record.eventType || "error",
               duration: record.duration,
               bytes: record.bodySizeBytes ?? 0,
             })}
           </div>
+          {(record.transport || record.poolId || record.error) && (
+            <div className="mt-2 flex flex-wrap gap-1 text-[10px]">
+              {record.transport && (
+                <span className="badge badge-ghost badge-xs">{record.transport}</span>
+              )}
+              {record.poolId && (
+                <span className="badge badge-info badge-outline badge-xs">
+                  pool:{record.poolId}
+                </span>
+              )}
+              {record.timedOut && <span className="badge badge-warning badge-xs">timeout</span>}
+              {record.error && <span className="text-error">{record.error}</span>}
+            </div>
+          )}
           {isGroup && (
             <div className="badge badge-outline badge-sm mt-2 text-warning">
               {t("duplicateCount", {
@@ -174,10 +194,43 @@ export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
         />
       </section>
       <div className="sticky bottom-0 border-t border-base-300 bg-base-100 p-3">
-        <button type="button" className="btn btn-primary btn-sm w-full" onClick={copyCurl}>
-          <CopyIcon className="size-3.5" />
-          {t("copyCurl")}
-        </button>
+        <div className="grid gap-2">
+          <label className="flex cursor-pointer items-center justify-between gap-3 rounded-box border border-base-300 bg-base-200/50 px-3 py-2 text-xs">
+            <span className="min-w-0">
+              <span className="block font-medium">{t("hideSensitiveData")}</span>
+              {!redactSensitive && (
+                <span className="block text-warning">{t("sensitiveDataWarning")}</span>
+              )}
+            </span>
+            <input
+              type="checkbox"
+              className="toggle toggle-sm toggle-primary"
+              checked={redactSensitive}
+              onChange={(event) => setRedactSensitive(event.target.checked)}
+              aria-label={t("hideSensitiveData")}
+            />
+          </label>
+          <motion.button
+            type="button"
+            className={`btn btn-sm w-full ${aiContextCopied ? "btn-success" : "btn-primary"}`}
+            onClick={copyAiContext}
+            animate={{ scale: aiContextCopied ? 1.025 : 1 }}
+            transition={{ type: "spring", stiffness: 480, damping: 22, mass: 0.7 }}
+            whileTap={{ scale: 0.97 }}
+            aria-live="polite"
+          >
+            {aiContextCopied ? (
+              <CheckIcon className="size-3.5" aria-hidden="true" />
+            ) : (
+              <ChatBubbleIcon className="size-3.5" aria-hidden="true" />
+            )}
+            {aiContextCopied ? t("aiContextCopied") : t("copyAiContext")}
+          </motion.button>
+          <button type="button" className="btn btn-ghost btn-sm w-full" onClick={copyCurl}>
+            <CopyIcon className="size-3.5" aria-hidden="true" />
+            {t("copyCurl")}
+          </button>
+        </div>
       </div>
     </aside>
   );

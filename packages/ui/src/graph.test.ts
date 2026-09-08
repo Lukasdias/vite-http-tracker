@@ -22,6 +22,8 @@ const mk = (partial: Partial<RequestRecord>): RequestRecord => ({
   duration: partial.duration ?? 0,
   strictMode: partial.strictMode ?? false,
   batchId: partial.batchId,
+  poolId: partial.poolId,
+  transport: partial.transport,
 });
 
 describe("methodColor", () => {
@@ -58,6 +60,15 @@ describe("matchesFilter", () => {
       ["c"],
     );
     expect(recs.filter((r) => matchesFilter(r, {})).length).toBe(3);
+  });
+  test("filters by transport", () => {
+    const streams = [
+      mk({ requestId: "sse", transport: "sse" }),
+      mk({ requestId: "ws", transport: "websocket" }),
+    ];
+    expect(
+      streams.filter((r) => matchesFilter(r, { transport: "sse" })).map((r) => r.requestId),
+    ).toEqual(["sse"]);
   });
 });
 
@@ -151,6 +162,18 @@ describe("buildGraph", () => {
     const { nodes } = buildGraph(groupRecords(recs), false);
     expect(nodes[0]!.batchSize).toBe(2);
     expect(nodes[1]!.batchSize).toBe(2);
+  });
+  test("exposes pool membership and its size on pooled nodes", () => {
+    const recs = [
+      mk({ requestId: "a", seq: 1, url: "/users/1", poolId: "users" }),
+      mk({ requestId: "b", seq: 2, url: "/users/2", poolId: "users" }),
+      mk({ requestId: "c", seq: 3, url: "/posts/1" }),
+    ];
+    const { nodes } = buildGraph(groupRecords(recs), false);
+    expect(nodes[0]!.poolId).toBe("users");
+    expect(nodes[0]!.poolSize).toBe(2);
+    expect(nodes[1]!.poolSize).toBe(2);
+    expect(nodes[2]!.poolId).toBeUndefined();
   });
 });
 

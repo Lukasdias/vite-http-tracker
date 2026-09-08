@@ -1,7 +1,55 @@
 import { useEffect, useState } from "react";
 
 const BASE = "https://jsonplaceholder.typicode.com";
+const DELAYED = "https://httpbin.org/delay/3";
 const json = (r: Response) => r.json();
+const poolFetch = (poolId: string, url: string) =>
+  fetch(url, { headers: { "x-http-tracker-pool-id": poolId } }).then(json);
+
+function sseScenario(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const source = new EventSource("https://stream.wikimedia.org/v2/stream/recentchange");
+    let messages = 0;
+    const timer = window.setTimeout(() => {
+      source.close();
+      resolve();
+    }, 5000);
+    source.onmessage = () => {
+      messages += 1;
+      if (messages >= 2) {
+        window.clearTimeout(timer);
+        source.close();
+        resolve();
+      }
+    };
+    source.onerror = () => {
+      window.clearTimeout(timer);
+      source.close();
+      reject(new Error("SSE connection failed"));
+    };
+  });
+}
+
+function websocketScenario(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const socket = new WebSocket("wss://echo.websocket.events");
+    const timer = window.setTimeout(() => {
+      socket.close();
+      resolve();
+    }, 5000);
+    socket.onopen = () => socket.send(JSON.stringify({ source: "vite-http-tracker" }));
+    socket.onmessage = () => {
+      window.clearTimeout(timer);
+      socket.close();
+      resolve();
+    };
+    socket.onerror = () => {
+      window.clearTimeout(timer);
+      socket.close();
+      reject(new Error("WebSocket connection failed"));
+    };
+  });
+}
 
 const scenarios = {
   all: () =>
@@ -29,6 +77,15 @@ const scenarios = {
       body: JSON.stringify({ title: "hi", body: "x", userId: 1 }),
     }).then(json),
   notFound: () => fetch(`${BASE}/todos/99999`).then(json),
+  error: () => fetch("http://127.0.0.1:4999/unavailable").then(json),
+  timeout: async () => {
+    const controller = new AbortController();
+    window.setTimeout(() => controller.abort(), 250);
+    await fetch(DELAYED, { signal: controller.signal });
+  },
+  pool: () => Promise.all([1, 2, 3].map((id) => poolFetch("users", `${BASE}/users/${id}`))),
+  sse: sseScenario,
+  websocket: websocketScenario,
 } as const;
 
 type ScenarioKey = keyof typeof scenarios;
@@ -40,6 +97,11 @@ const labels: Record<ScenarioKey, string> = {
   deepChain: "Deep chain",
   post: "POST",
   notFound: "404",
+  error: "Network error",
+  timeout: "Timeout",
+  pool: "HTTP pool",
+  sse: "SSE stream",
+  websocket: "WebSocket stream",
 };
 
 export function App() {

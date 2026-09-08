@@ -2,7 +2,61 @@ import { render } from "solid-js/web";
 import { createSignal, onMount, For } from "solid-js";
 
 const BASE = "https://jsonplaceholder.typicode.com";
-const scenarios = ["Promise.all", "Chain", "POST", "404"] as const;
+const DELAYED = "https://httpbin.org/delay/3";
+const scenarios = [
+  "Promise.all",
+  "Chain",
+  "POST",
+  "404",
+  "Network error",
+  "Timeout",
+  "HTTP pool",
+  "SSE stream",
+  "WebSocket stream",
+] as const;
+const poolFetch = (poolId: string, url: string) =>
+  fetch(url, { headers: { "x-http-tracker-pool-id": poolId } });
+const sse = (): Promise<void> =>
+  new Promise((resolve, reject) => {
+    const source = new EventSource("https://stream.wikimedia.org/v2/stream/recentchange");
+    let count = 0;
+    const timer = window.setTimeout(() => {
+      source.close();
+      resolve();
+    }, 5000);
+    source.onmessage = () => {
+      count += 1;
+      if (count >= 2) {
+        window.clearTimeout(timer);
+        source.close();
+        resolve();
+      }
+    };
+    source.onerror = () => {
+      window.clearTimeout(timer);
+      source.close();
+      reject(new Error("SSE connection failed"));
+    };
+  });
+const websocket = (): Promise<void> =>
+  new Promise((resolve, reject) => {
+    const socket = new WebSocket("wss://echo.websocket.events");
+    const timer = window.setTimeout(() => {
+      socket.close();
+      resolve();
+    }, 5000);
+    socket.onopen = () => socket.send("vite-http-tracker");
+    socket.onmessage = () => {
+      window.clearTimeout(timer);
+      socket.close();
+      resolve();
+    };
+    socket.onerror = () => {
+      window.clearTimeout(timer);
+      socket.close();
+      reject(new Error("WebSocket connection failed"));
+    };
+  });
 function App() {
   const [log, setLog] = createSignal<string[]>([]);
   const fire = async (name: (typeof scenarios)[number]): Promise<void> => {
@@ -13,6 +67,16 @@ function App() {
     if (name === "POST")
       await fetch(`${BASE}/posts`, { method: "POST", body: JSON.stringify({ title: "hi" }) });
     if (name === "404") await fetch(`${BASE}/todos/99999`);
+    if (name === "Network error") await fetch("http://127.0.0.1:4999/unavailable");
+    if (name === "Timeout") {
+      const controller = new AbortController();
+      window.setTimeout(() => controller.abort(), 250);
+      await fetch(DELAYED, { signal: controller.signal });
+    }
+    if (name === "HTTP pool")
+      await Promise.all([1, 2, 3].map((id) => poolFetch("users", `${BASE}/users/${id}`)));
+    if (name === "SSE stream") await sse();
+    if (name === "WebSocket stream") await websocket();
   };
   onMount(() => void fire("Promise.all"));
   return (
