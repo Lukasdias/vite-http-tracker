@@ -4,6 +4,9 @@
   "workspaces": {
     "": {
       "name": "vite-http-tracker",
+      "dependencies": {
+        "hono": "^4.0.0",
+      },
       "devDependencies": {
         "@happy-dom/global-registrator": "^15.0.0",
         "@types/bun": "latest",
@@ -12,6 +15,9 @@
         "oxfmt": "^0.66.0",
         "oxlint": "^1.81.0",
         "typescript": "^5.5.0",
+      },
+      "peerDependencies": {
+        "vite": "^8.0.0",
       },
     },
     "apps/preact-app": {

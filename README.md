@@ -53,7 +53,7 @@ sequenceDiagram
   Dashboard->>Dashboard: groupRecords, buildGraph, render React Flow timeline
 ```
 
-The agent can also be wired up manually in a Vite app — `import { initAgent } from "@vite-http-tracker/agent"` — when you want capture without the plugin's auto-inject.
+The agent can also be wired up manually in a Vite app — `import { initAgent } from "vite-http-tracker/agent"` — when you want capture without the plugin's auto-inject.
 
 ## Packages
 
@@ -99,11 +99,19 @@ To start the tracker and a fixture together, use `bun run dev:all:<fixture>` whe
 
 ### Use on your own Vite app
 
+Install the published package in your app:
+
+```bash
+bun add -d vite-http-tracker
+```
+
+Start the tracker with `bunx vite-http-tracker --no-open`, then add the plugin:
+
 ```ts
 // vite.config.ts
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
-import { viteHttpTracker } from "@vite-http-tracker/plugin";
+import { viteHttpTracker } from "vite-http-tracker/plugin";
 
 export default defineConfig({
   plugins: [react(), viteHttpTracker({ serverUrl: "http://localhost:4000", token: "dev" })],
@@ -215,7 +223,7 @@ bun run --cwd packages/ui build                    # rebuild the dashboard bundl
 - Explicit types on exports; no `any`; `import type` for type-only imports; import with a `.js` extension.
 - React Compiler via `react({ compiler: true })` — do not add `babel: { plugins: ['babel-plugin-react-compiler'] }`.
 - happy-dom is registered per test file, not via a global `bunfig.toml` preload.
-- Package exports point at `.ts` sources; the libs have no build step.
+- Workspace exports point at `.ts` sources for local development; `bun run build:publish` generates the npm package in `dist/`.
 
 ## Development
 
@@ -226,6 +234,10 @@ bunx oxlint packages apps   # lint (oxlint)
 bunx oxfmt --write packages apps  # format (oxfmt)
 bun run build:ui            # build the dashboard bundle (served by the server)
 bun run packages/server/src/cli.ts --no-open   # run the server directly
+bun run build:publish       # build the publishable package in dist/
+NPM_CONFIG_CACHE=/tmp/npm-cache npm pack  # inspect the npm tarball
 ```
+
+To publish a release, create and publish a GitHub Release. The publish workflow builds the package and publishes it to npm with provenance. Configure the npm package's GitHub Actions trusted publisher before the first release.
 
 Each package has its own `tsconfig.json` (extends `tsconfig.base.json`). The dashboard UI is built with Vite 8 + the native React Compiler (Oxc). `@vitejs/plugin-react` v6 with `babel: { plugins: [...] }` is **not** used — that config only works on the old Babel toolchain.

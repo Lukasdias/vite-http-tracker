@@ -1,3 +1,5 @@
+#!/usr/bin/env bun
+
 export interface CliArgs {
   port: number;
   token: string;

@@ -1,12 +1,68 @@
 {
   "name": "vite-http-tracker",
-  "private": true,
+  "version": "0.1.0",
+  "private": false,
+  "description": "Capture and visualize frontend HTTP traffic during Vite development",
+  "keywords": [
+    "debugging",
+    "development",
+    "http",
+    "network",
+    "react",
+    "vite"
+  ],
+  "homepage": "https://github.com/Lukasdias/vite-http-tracker#readme",
+  "bugs": {
+    "url": "https://github.com/Lukasdias/vite-http-tracker/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/Lukasdias/vite-http-tracker.git"
+  },
+  "bin": {
+    "vite-http-tracker": "./dist/packages/server/src/cli.js"
+  },
   "workspaces": [
     "packages/*",
     "apps/*"
   ],
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
   "type": "module",
+  "main": "./dist/packages/plugin/src/index.js",
+  "types": "./dist/packages/plugin/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/packages/plugin/src/index.d.ts",
+      "import": "./dist/packages/plugin/src/index.js"
+    },
+    "./plugin": {
+      "types": "./dist/packages/plugin/src/index.d.ts",
+      "import": "./dist/packages/plugin/src/index.js"
+    },
+    "./agent": {
+      "types": "./dist/packages/agent/src/index.d.ts",
+      "import": "./dist/packages/agent/src/index.js"
+    },
+    "./server": {
+      "types": "./dist/packages/server/src/index.d.ts",
+      "import": "./dist/packages/server/src/index.js"
+    },
+    "./shared": {
+      "types": "./dist/packages/shared/src/index.d.ts",
+      "import": "./dist/packages/shared/src/index.js"
+    },
+    "./logo.svg": "./dist/packages/shared/src/logo.svg",
+    "./package.json": "./package.json"
+  },
   "scripts": {
+    "build:publish": "bun run scripts/build-publish.ts",
+    "pack:check": "npm pack --dry-run",
+    "prepack": "bun run build:publish",
     "test": "bun test",
     "dev:server": "bun run packages/server/src/cli.ts",
     "dev:all:react": "concurrently -k -n tracker,react -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/react-app dev\"",
@@ -15,10 +71,13 @@
     "dev:all:svelte": "concurrently -k -n tracker,svelte -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/svelte-app dev\"",
     "dev:all:preact": "concurrently -k -n tracker,preact -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/preact-app dev\"",
     "dev:all:vanilla": "concurrently -k -n tracker,vanilla -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/vanilla-app dev\"",
-    "build": "bun run build --filter=*",
+    "build": "bun run build:publish",
     "build:ui": "bun run --cwd packages/ui build",
     "lint": "oxlint packages apps",
     "format": "oxfmt --write packages apps"
+  },
+  "dependencies": {
+    "hono": "^4.0.0"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^15.0.0",
@@ -28,5 +87,11 @@
     "oxfmt": "^0.66.0",
     "oxlint": "^1.81.0",
     "typescript": "^5.5.0"
+  },
+  "peerDependencies": {
+    "vite": "^8.0.0"
+  },
+  "engines": {
+    "bun": ">=1.4.0"
   }
 }
