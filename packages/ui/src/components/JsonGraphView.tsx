@@ -61,6 +61,7 @@ function GraphCanvas({ nodes, edges }: { nodes: JsonFlowNode[]; edges: Edge[] })
       onEdgesChange={onEdgesChange}
       nodeTypes={nodeTypes}
       fitView
+      nodesDraggable={false}
       colorMode="dark"
     >
       <Background gap={24} size={1} />

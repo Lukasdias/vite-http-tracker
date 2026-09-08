@@ -1,12 +1,20 @@
 {
   "name": "vite-http-tracker",
   "private": true,
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "type": "module",
-  "workspaces": ["packages/*", "apps/*"],
   "scripts": {
     "test": "bun test",
     "dev:server": "bun run packages/server/src/cli.ts",
-    "dev:all": "concurrently -k -n tracker,app -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/react-app dev\"",
+    "dev:all:react": "concurrently -k -n tracker,react -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/react-app dev\"",
+    "dev:all:vue": "concurrently -k -n tracker,vue -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/vue-app dev\"",
+    "dev:all:solid": "concurrently -k -n tracker,solid -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/solid-app dev\"",
+    "dev:all:svelte": "concurrently -k -n tracker,svelte -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/svelte-app dev\"",
+    "dev:all:preact": "concurrently -k -n tracker,preact -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/preact-app dev\"",
+    "dev:all:vanilla": "concurrently -k -n tracker,vanilla -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/vanilla-app dev\"",
     "build": "bun run build --filter=*",
     "build:ui": "bun run --cwd packages/ui build",
     "lint": "oxlint packages apps",
