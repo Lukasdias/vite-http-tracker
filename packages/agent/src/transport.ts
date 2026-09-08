@@ -5,10 +5,13 @@ import {
   type RequestRecord,
 } from "@vite-http-tracker/shared";
 
+export type ConnectionState = "connecting" | "connected" | "disconnected";
+
 export interface TransportOptions {
   url?: string;
   token?: string;
   ringSize?: number;
+  onConnectionChange?: (state: ConnectionState) => void;
 }
 
 export class WsTransport {
@@ -19,12 +22,16 @@ export class WsTransport {
   private socket: WebSocket | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly onAck: (n: number) => void;
+  private readonly onConnectionChange: ((state: ConnectionState) => void) | undefined;
+  private isClosed = false;
+  private connectionState: ConnectionState | null = null;
 
   constructor(opts: TransportOptions, onAck: (n: number) => void = () => {}) {
     this.url = opts.url ?? DEFAULT_WS_URL;
     this.token = opts.token ?? DEFAULT_TOKEN;
     this.ringSize = opts.ringSize ?? DEFAULT_RING_BUFFER_SIZE;
     this.onAck = onAck;
+    this.onConnectionChange = opts.onConnectionChange;
   }
 
   enqueue(record: RequestRecord): void {
@@ -36,15 +43,31 @@ export class WsTransport {
   }
 
   connect(): void {
+    if (this.isClosed) return;
     if (
       this.socket &&
       (this.socket.readyState === WebSocket.OPEN || this.socket.readyState === WebSocket.CONNECTING)
     )
       return;
-    const sock = new WebSocket(this.url);
+    if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
+    this.setConnectionState("connecting");
+    let sock: WebSocket;
+    try {
+      sock = new WebSocket(this.url);
+    } catch {
+      this.setConnectionState("disconnected");
+      this.scheduleReconnect();
+      return;
+    }
     this.socket = sock;
-    sock.onopen = () => this.flush();
+    sock.onopen = () => {
+      if (this.isClosed || this.socket !== sock) return;
+      this.setConnectionState("connected");
+      this.flush();
+    };
     sock.onmessage = (ev) => {
+      if (this.isClosed || this.socket !== sock) return;
       try {
         const msg = JSON.parse(String(ev.data)) as { type: string; count?: number };
         if (msg.type === "acked" && typeof msg.count === "number") {
@@ -53,14 +76,25 @@ export class WsTransport {
         }
       } catch {}
     };
-    sock.onclose = () => this.scheduleReconnect();
-    sock.onerror = () => sock.close();
+    sock.onclose = () => {
+      if (this.isClosed || this.socket !== sock) return;
+      this.setConnectionState("disconnected");
+      this.scheduleReconnect();
+    };
+    sock.onerror = () => {
+      if (this.isClosed || this.socket !== sock) return;
+      this.setConnectionState("disconnected");
+      sock.close();
+    };
   }
 
   close(): void {
+    this.isClosed = true;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
+    this.reconnectTimer = null;
     this.socket?.close();
     this.socket = null;
+    this.setConnectionState("disconnected");
   }
 
   private flush(): void {
@@ -70,8 +104,15 @@ export class WsTransport {
   }
 
   private scheduleReconnect(): void {
+    if (this.isClosed) return;
     this.socket = null;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = setTimeout(() => this.connect(), 1000);
+  }
+
+  private setConnectionState(state: ConnectionState): void {
+    if (this.connectionState === state) return;
+    this.connectionState = state;
+    this.onConnectionChange?.(state);
   }
 }

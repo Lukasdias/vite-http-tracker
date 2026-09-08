@@ -13,6 +13,7 @@ The tool intercepts `fetch`/`XMLHttpRequest` in the running app, sends each requ
 - Detects **parallel batches** (`Promise.all`/`Promise.allSettled` / same-turn calls): requests started in the same turn are marked `⚡×N` with a dashed border.
 - Filters by method/status/URL, and an inspector panel shows full headers / body / timing per request.
 - Zero-config opt-in: a Vite plugin auto-injects the agent into a dev build; a CLI starts the server.
+- A small development status button appears in plugin-enabled apps and links back to the dashboard.
 - Local-first: no auth, no external service. Server holds a bounded in-memory history.
 
 ## Architecture
@@ -148,6 +149,7 @@ No other code changes are required. The agent connects to `ws://<page-host>:4000
 | `serverUrl` | page host + `:4000` | Tracker server URL. If omitted, the agent derives the host from the page. |
 | `token` | `dev` | Shared auth token. Required on every ingest/upgrade path. |
 | `autoInject` | `true` | Whether to inject the agent into the dev build. |
+| `showIndicator` | `true` | Whether the injected dev agent shows the connection button in the tracked app. |
 
 CLI `vite-http-tracker`:
 
