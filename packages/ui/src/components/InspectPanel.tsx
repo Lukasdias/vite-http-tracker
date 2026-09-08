@@ -1,6 +1,7 @@
 import type { RequestRecord } from "@vite-http-tracker/shared";
-import { useState } from "react";
-import { ChatBubbleIcon, CopyIcon } from "@radix-ui/react-icons";
+import { useEffect, useState } from "react";
+import { ChatBubbleIcon, CheckIcon, CopyIcon } from "@radix-ui/react-icons";
+import { motion } from "motion/react";
 import { toast } from "sonner";
 import { toCurl } from "../curl.js";
 import { methodColor, statusClass, type RecordGroup } from "../graph.js";
@@ -66,6 +67,13 @@ function SectionHeader({ title, mime }: { title: string; mime?: string }) {
 export function InspectPanel({ group, record, contextRecords, onClose }: InspectPanelProps) {
   const { t } = useI18n();
   const [redactSensitive, setRedactSensitive] = useState(true);
+  const [aiContextCopied, setAiContextCopied] = useState(false);
+
+  useEffect(() => {
+    if (!aiContextCopied) return;
+    const timer = window.setTimeout(() => setAiContextCopied(false), 2_800);
+    return () => window.clearTimeout(timer);
+  }, [aiContextCopied]);
   if (!record) {
     return (
       <aside className="flex h-full items-center justify-center text-sm text-base-content/50">
@@ -86,6 +94,7 @@ export function InspectPanel({ group, record, contextRecords, onClose }: Inspect
 
   const copyAiContext = async () => {
     await copyText(buildAiContext(record, group, contextRecords, redactSensitive));
+    setAiContextCopied(true);
     toast.success(t("aiContextCopied"));
   };
 
@@ -201,10 +210,22 @@ export function InspectPanel({ group, record, contextRecords, onClose }: Inspect
               aria-label={t("hideSensitiveData")}
             />
           </label>
-          <button type="button" className="btn btn-primary btn-sm w-full" onClick={copyAiContext}>
-            <ChatBubbleIcon className="size-3.5" aria-hidden="true" />
-            {t("copyAiContext")}
-          </button>
+          <motion.button
+            type="button"
+            className={`btn btn-sm w-full ${aiContextCopied ? "btn-success" : "btn-primary"}`}
+            onClick={copyAiContext}
+            animate={{ scale: aiContextCopied ? 1.025 : 1 }}
+            transition={{ type: "spring", stiffness: 480, damping: 22, mass: 0.7 }}
+            whileTap={{ scale: 0.97 }}
+            aria-live="polite"
+          >
+            {aiContextCopied ? (
+              <CheckIcon className="size-3.5" aria-hidden="true" />
+            ) : (
+              <ChatBubbleIcon className="size-3.5" aria-hidden="true" />
+            )}
+            {aiContextCopied ? t("aiContextCopied") : t("copyAiContext")}
+          </motion.button>
           <button type="button" className="btn btn-ghost btn-sm w-full" onClick={copyCurl}>
             <CopyIcon className="size-3.5" aria-hidden="true" />
             {t("copyCurl")}
