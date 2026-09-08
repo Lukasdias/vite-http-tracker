@@ -3,6 +3,7 @@ import { Handle, Position } from "@xyflow/react";
 import { LightningBoltIcon } from "@radix-ui/react-icons";
 import type { RequestRecord } from "@vite-http-tracker/shared";
 import { methodColor, statusClass, type Orientation } from "../graph.js";
+import { pathOf } from "../grouping.js";
 
 export interface RequestNodeData extends Record<string, unknown> {
   record: RequestRecord;
@@ -61,7 +62,7 @@ export function RequestNode({ data }: NodeProps<RequestFlowNode>) {
           </span>
         )}
       </div>
-      <div className="mt-1 max-w-56 truncate text-xs mono">{record.url}</div>
+      <div className="mt-1 max-w-56 truncate text-xs mono">{pathOf(record.url)}</div>
       <div className="mt-1 flex items-center gap-2 text-xs text-base-content/60">
         <span className="mono">{record.duration}ms</span>
         <span className="mono">·</span>

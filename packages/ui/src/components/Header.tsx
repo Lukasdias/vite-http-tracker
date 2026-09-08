@@ -3,6 +3,7 @@ import {
   ArrowDownIcon,
   ArrowRightIcon,
   EnterFullScreenIcon,
+  LayersIcon,
   Link2Icon,
   MagnifyingGlassIcon,
   TrashIcon,
@@ -18,6 +19,8 @@ export interface HeaderProps {
   onChange: (filter: RecordFilter) => void;
   showEdges: boolean;
   onShowEdges: (v: boolean) => void;
+  showLegend: boolean;
+  onShowLegend: (v: boolean) => void;
   orientation: Orientation;
   onOrientation: (o: Orientation) => void;
   onClear: () => void;
@@ -100,6 +103,8 @@ export function Header({
   onChange,
   showEdges,
   onShowEdges,
+  showLegend,
+  onShowLegend,
   orientation,
   onOrientation,
   onClear,
@@ -175,6 +180,14 @@ export function Header({
             title="Show timeline edges"
           >
             <Link2Icon className={icon} />
+          </ToolButton>
+
+          <ToolButton
+            active={showLegend}
+            onClick={() => onShowLegend(!showLegend)}
+            title="Show domain legend"
+          >
+            <LayersIcon className={icon} />
           </ToolButton>
 
           <div className="flex gap-1">

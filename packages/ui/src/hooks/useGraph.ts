@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import {
-  buildGraph,
+  buildGroupedGraph,
   filterGroups,
   groupRecords,
+  type DomainNode,
   type Orientation,
   type RecordFilter,
 } from "../graph.js";
@@ -11,8 +12,9 @@ import { useRequests } from "./useRequests.js";
 
 export interface UseGraphResult {
   groups: RecordGroup[];
-  nodes: ReturnType<typeof buildGraph>["nodes"];
-  edges: ReturnType<typeof buildGraph>["edges"];
+  domainNodes: DomainNode[];
+  nodes: ReturnType<typeof buildGroupedGraph>["nodes"];
+  edges: ReturnType<typeof buildGroupedGraph>["edges"];
 }
 
 export function useGraph(
@@ -24,8 +26,8 @@ export function useGraph(
   const groups = useMemo(() => groupRecords(requests), [requests]);
   const filtered = useMemo(() => filterGroups(groups, filter), [groups, filter]);
   const graph = useMemo(
-    () => buildGraph(filtered, showEdges, orientation),
+    () => buildGroupedGraph(filtered, showEdges, orientation),
     [filtered, showEdges, orientation],
   );
-  return { groups, nodes: graph.nodes, edges: graph.edges };
+  return { groups, domainNodes: graph.domainNodes, nodes: graph.nodes, edges: graph.edges };
 }
