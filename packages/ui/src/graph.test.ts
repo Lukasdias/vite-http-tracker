@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type { RequestRecord } from "@vite-http-tracker/shared";
 import {
   buildGraph,
+  buildGroupedGraph,
   filterGroups,
   groupRecords,
   matchesFilter,
@@ -150,5 +151,42 @@ describe("buildGraph", () => {
     const { nodes } = buildGraph(groupRecords(recs), false);
     expect(nodes[0]!.batchSize).toBe(2);
     expect(nodes[1]!.batchSize).toBe(2);
+  });
+});
+
+describe("buildGroupedGraph", () => {
+  test("wraps request groups in domain containers with parentId and extent", () => {
+    const recs = [
+      mk({ requestId: "a", seq: 1, url: "https://api.example.com/v1/users" }),
+      mk({ requestId: "b", seq: 2, url: "https://api.example.com/v1/posts" }),
+      mk({ requestId: "c", seq: 3, url: "https://cdn.example.com/x.js" }),
+    ];
+    const { domainNodes, nodes, edges } = buildGroupedGraph(groupRecords(recs), true);
+    expect(domainNodes.length).toBe(2);
+    expect(domainNodes.map((d) => d.domain)).toEqual(["api.example.com", "cdn.example.com"]);
+    expect(nodes.every((n) => n.parentId && n.extent === "parent")).toBe(true);
+    expect(nodes[0]!.parentId).toBe("domain:api.example.com");
+    expect(edges.length).toBe(2);
+  });
+  test("stacks containers vertically in horizontal orientation and sizes them", () => {
+    const recs = [
+      mk({ requestId: "a", seq: 1, url: "https://a.com/x" }),
+      mk({ requestId: "b", seq: 2, url: "https://b.com/y" }),
+    ];
+    const { domainNodes } = buildGroupedGraph(groupRecords(recs), false, "horizontal");
+    expect(domainNodes[0]!.y).toBe(0);
+    expect(domainNodes[1]!.y).toBeGreaterThan(domainNodes[0]!.y);
+    expect(domainNodes[0]!.width).toBeGreaterThan(0);
+    expect(domainNodes[0]!.height).toBeGreaterThan(0);
+  });
+  test("places containers side by side in vertical orientation", () => {
+    const recs = [
+      mk({ requestId: "a", seq: 1, url: "https://a.com/x" }),
+      mk({ requestId: "b", seq: 2, url: "https://b.com/y" }),
+    ];
+    const { domainNodes } = buildGroupedGraph(groupRecords(recs), false, "vertical");
+    expect(domainNodes[0]!.x).toBe(0);
+    expect(domainNodes[1]!.x).toBeGreaterThan(domainNodes[0]!.x);
+    expect(domainNodes[0]!.y).toBe(0);
   });
 });

@@ -3,6 +3,7 @@ import { CopyIcon } from "@radix-ui/react-icons";
 import { toast } from "sonner";
 import { toCurl } from "../curl.js";
 import { methodColor, statusClass, type RecordGroup } from "../graph.js";
+import { domainOf, pathOf } from "../grouping.js";
 import { queryParams } from "../json.js";
 import { BodyViewer, KeyValueRows } from "./BodyViewer.js";
 
@@ -93,8 +94,9 @@ export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
     <aside className="h-full overflow-y-auto">
       <header className="flex items-start justify-between gap-2 border-b border-base-300 p-3">
         <div>
+          <div className="text-xs text-base-content/50">{domainOf(record.url)}</div>
           <div className="font-semibold" style={{ color: methodColor(record.method) }}>
-            {record.method} <span className="font-normal break-all">{record.url}</span>
+            {record.method} <span className="font-normal break-all">{pathOf(record.url)}</span>
           </div>
           <div className="mt-1 text-xs text-base-content/70">
             Status {record.status} · {record.duration}ms · {record.bodySizeBytes ?? 0} B

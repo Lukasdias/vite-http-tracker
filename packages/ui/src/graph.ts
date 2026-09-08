@@ -1,4 +1,5 @@
 import type { RequestRecord } from "@vite-http-tracker/shared";
+import { partitionByDomain } from "./grouping.js";
 
 export interface GraphNode {
   id: string;
@@ -14,6 +15,8 @@ export interface GraphNode {
   memberIds: string[];
   batchId?: string;
   batchSize?: number;
+  parentId?: string;
+  extent?: "parent";
 }
 
 export interface GraphEdge {
@@ -45,6 +48,26 @@ export const OTHER_METHOD_COLOR = "#cfd3dc";
 export const X_GAP = 300;
 export const Y_GAP = 180;
 export const DUPLICATE_WINDOW_MS = 200;
+export const DOMAIN_PADDING = 16;
+export const DOMAIN_GAP = 40;
+export const NODE_W = 224;
+export const NODE_H = 72;
+
+export interface DomainNode {
+  id: string;
+  domain: string;
+  color: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface GroupedGraph {
+  domainNodes: DomainNode[];
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+}
 
 export function methodColor(method: string): string {
   return METHOD_COLORS[method.toUpperCase()] ?? OTHER_METHOD_COLOR;
@@ -157,4 +180,90 @@ export function buildGraph(
     }
   }
   return { nodes, edges };
+}
+
+export function buildGroupedGraph(
+  groups: RecordGroup[],
+  showEdges: boolean,
+  orientation: Orientation = "horizontal",
+): GroupedGraph {
+  const batchSizes = new Map<string, number>();
+  for (const g of groups) {
+    const id = g.canonical.batchId;
+    if (id) batchSizes.set(id, (batchSizes.get(id) ?? 0) + 1);
+  }
+
+  const domains = partitionByDomain(groups);
+  const domainNodes: DomainNode[] = [];
+  const nodes: GraphNode[] = [];
+  let cursor = 0;
+
+  for (const d of domains) {
+    const dId = `domain:${d.domain}`;
+    const sorted = [...d.groups].sort((a, b) => a.canonical.seq - b.canonical.seq);
+    const children: GraphNode[] = sorted.map((g, i) => ({
+      id: g.canonical.requestId,
+      seq: g.canonical.seq,
+      method: g.canonical.method,
+      url: g.canonical.url,
+      status: g.canonical.status,
+      duration: g.canonical.duration,
+      x: orientation === "horizontal" ? i * X_GAP + DOMAIN_PADDING : DOMAIN_PADDING,
+      y: orientation === "horizontal" ? DOMAIN_PADDING : i * Y_GAP + DOMAIN_PADDING,
+      dupCount: g.members.length,
+      strictMode: g.strictMode,
+      memberIds: g.members.map((m) => m.requestId),
+      batchId: g.canonical.batchId,
+      batchSize: g.canonical.batchId ? (batchSizes.get(g.canonical.batchId) ?? 0) : 0,
+      parentId: dId,
+      extent: "parent",
+    }));
+    const maxX = Math.max(...children.map((c) => c.x), DOMAIN_PADDING);
+    const maxY = Math.max(...children.map((c) => c.y), DOMAIN_PADDING);
+    const width = maxX + NODE_W + DOMAIN_PADDING;
+    const height = maxY + NODE_H + DOMAIN_PADDING;
+    if (orientation === "horizontal") {
+      domainNodes.push({
+        id: dId,
+        domain: d.domain,
+        color: d.color,
+        x: 0,
+        y: cursor,
+        width,
+        height,
+      });
+      cursor += height + DOMAIN_GAP;
+    } else {
+      domainNodes.push({
+        id: dId,
+        domain: d.domain,
+        color: d.color,
+        x: cursor,
+        y: 0,
+        width,
+        height,
+      });
+      cursor += width + DOMAIN_GAP;
+    }
+    nodes.push(...children);
+  }
+
+  const edges: GraphEdge[] = [];
+  if (showEdges) {
+    const allSorted = [...groups].sort((a, b) => a.canonical.seq - b.canonical.seq);
+    for (let i = 1; i < allSorted.length; i++) {
+      const prev = allSorted[i - 1];
+      const cur = allSorted[i];
+      if (!prev || !cur) continue;
+      const gap = Math.max(0, Math.round(cur.canonical.startTime - prev.canonical.startTime));
+      edges.push({
+        id: "e" + i,
+        source: prev.canonical.requestId,
+        target: cur.canonical.requestId,
+        gap,
+      });
+    }
+  }
+
+  return { domainNodes, nodes, edges };
 }

@@ -17,12 +17,15 @@ import { useTrackerConnection } from "./hooks/useTrackerConnection.js";
 import { useClearRequests } from "./hooks/useClearRequests.js";
 import { useRequest } from "./hooks/useRequests.js";
 import { RequestNode, type RequestFlowNode } from "./components/RequestNode.js";
+import { DomainNode, type DomainFlowNode } from "./components/DomainNode.js";
+import { Legend } from "./components/Legend.js";
 import { Header } from "./components/Header.js";
 import { InspectPanel } from "./components/InspectPanel.js";
+import { JsonGraphView } from "./components/JsonGraphView.js";
 import { useTrackerToken } from "./hooks/useTrackerToken.js";
 import type { Orientation } from "./graph.js";
 
-const nodeTypes = { request: RequestNode };
+const nodeTypes = { request: RequestNode, domain: DomainNode };
 const EDGE_COLOR = "#54a7ff";
 
 function FlowCanvas({
@@ -31,7 +34,7 @@ function FlowCanvas({
   orientation,
   onNodeClick,
 }: {
-  nodes: RequestFlowNode[];
+  nodes: (RequestFlowNode | DomainFlowNode)[];
   edges: Edge[];
   orientation: Orientation;
   onNodeClick: (id: string) => void;
@@ -77,19 +80,30 @@ function Dashboard() {
   const [showEdges, setShowEdges] = useState(true);
   const [orientation, setOrientation] = useState<Orientation>("horizontal");
   const [selectedId, setSelectedId] = useRequestSelection();
-  const { groups, nodes, edges } = useGraph(filter, showEdges, orientation);
+  const [graphRecordId, setGraphRecordId] = useState<string | null>(null);
+  const [showLegend, setShowLegend] = useState(true);
+  const { groups, domainNodes, nodes, edges } = useGraph(filter, showEdges, orientation);
   const selected = useRequest(selectedId);
   const clear = useClearRequests(send);
   const { fitView, zoomIn, zoomOut } = useReactFlow();
 
-  const graphNodes = useMemo<RequestFlowNode[]>(
-    () =>
-      nodes.map((n) => {
+  const graphNodes = useMemo<(RequestFlowNode | DomainFlowNode)[]>(
+    () => [
+      ...domainNodes.map((d) => ({
+        id: d.id,
+        type: "domain" as const,
+        position: { x: d.x, y: d.y },
+        style: { width: d.width, height: d.height, backgroundColor: d.color + "22" },
+        data: { domain: d.domain, color: d.color },
+      })),
+      ...nodes.map((n) => {
         const group = groups.find((g) => g.canonical.requestId === n.id);
         return {
           id: n.id,
-          type: "request",
+          type: "request" as const,
           position: { x: n.x, y: n.y },
+          parentId: n.parentId,
+          extent: n.parentId ? ("parent" as const) : undefined,
           data: {
             record: (group?.canonical ?? selected) as RequestRecord,
             dupCount: n.dupCount,
@@ -100,7 +114,8 @@ function Dashboard() {
           },
         };
       }),
-    [nodes, groups, selected, orientation],
+    ],
+    [domainNodes, nodes, groups, selected, orientation],
   );
 
   const graphEdges = useMemo<Edge[]>(
@@ -137,6 +152,8 @@ function Dashboard() {
         onChange={setFilter}
         showEdges={showEdges}
         onShowEdges={setShowEdges}
+        showLegend={showLegend}
+        onShowLegend={setShowLegend}
         orientation={orientation}
         onOrientation={setOrientation}
         onClear={() => clear.mutate(token)}
@@ -150,12 +167,22 @@ function Dashboard() {
       />
       <div className="flex min-h-0 flex-1">
         <div className="min-w-0 flex-1">
-          <FlowCanvas
-            nodes={graphNodes}
-            edges={graphEdges}
-            orientation={orientation}
-            onNodeClick={setSelectedId}
-          />
+          {graphRecordId && selected ? (
+            <JsonGraphView record={selected} onBack={() => setGraphRecordId(null)} />
+          ) : (
+            <div className="relative h-full">
+              <FlowCanvas
+                nodes={graphNodes}
+                edges={graphEdges}
+                orientation={orientation}
+                onNodeClick={(id) => {
+                  setSelectedId(id);
+                  setGraphRecordId(id);
+                }}
+              />
+              {showLegend && <Legend domains={domainNodes} onClose={() => setShowLegend(false)} />}
+            </div>
+          )}
         </div>
         <div className="hidden w-80 shrink-0 border-l border-base-300 md:block">
           <InspectPanel
