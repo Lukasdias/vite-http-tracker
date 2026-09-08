@@ -259,8 +259,9 @@ export function Header({
           </label>
           <select
             id="language-select"
-            className="select select-sm select-bordered w-28 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="select select-sm select-bordered w-40 max-w-40 truncate overflow-hidden text-ellipsis whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             value={locale}
+            title={localeLabels[locale]}
             onChange={(event) => {
               if (isLocale(event.target.value)) setLocale(event.target.value);
             }}
