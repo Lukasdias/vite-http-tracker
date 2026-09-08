@@ -111,6 +111,7 @@ function Dashboard() {
             strictMode: n.strictMode,
             memberIds: n.memberIds,
             batchSize: n.batchSize,
+            poolSize: n.poolSize,
             orientation,
           },
         };

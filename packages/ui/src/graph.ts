@@ -7,6 +7,11 @@ export interface GraphNode {
   method: string;
   url: string;
   status: number;
+  transport?: RequestRecord["transport"];
+  error?: string;
+  timedOut?: boolean;
+  poolId?: string;
+  poolSize?: number;
   duration: number;
   x: number;
   y: number;
@@ -76,6 +81,7 @@ export function methodColor(method: string): string {
 export type StatusClass = "success" | "warning" | "error";
 
 export function statusClass(status: number): StatusClass {
+  if (status === 0) return "error";
   if (status >= 400) return "error";
   if (status >= 300) return "warning";
   return "success";
@@ -145,9 +151,12 @@ export function buildGraph(
 ): Graph {
   const sorted = [...groups].sort((a, b) => a.canonical.seq - b.canonical.seq);
   const batchSizes = new Map<string, number>();
+  const poolSizes = new Map<string, number>();
   for (const g of sorted) {
     const id = g.canonical.batchId;
     if (id) batchSizes.set(id, (batchSizes.get(id) ?? 0) + 1);
+    if (g.canonical.poolId)
+      poolSizes.set(g.canonical.poolId, (poolSizes.get(g.canonical.poolId) ?? 0) + 1);
   }
   const nodes: GraphNode[] = sorted.map((g, i) => ({
     id: g.canonical.requestId,
@@ -155,6 +164,11 @@ export function buildGraph(
     method: g.canonical.method,
     url: g.canonical.url,
     status: g.canonical.status,
+    transport: g.canonical.transport,
+    error: g.canonical.error,
+    timedOut: g.canonical.timedOut,
+    poolId: g.canonical.poolId,
+    poolSize: g.canonical.poolId ? (poolSizes.get(g.canonical.poolId) ?? 0) : 0,
     duration: g.canonical.duration,
     x: orientation === "horizontal" ? i * X_GAP : 0,
     y: orientation === "vertical" ? i * Y_GAP : 0,
@@ -188,9 +202,12 @@ export function buildGroupedGraph(
   orientation: Orientation = "horizontal",
 ): GroupedGraph {
   const batchSizes = new Map<string, number>();
+  const poolSizes = new Map<string, number>();
   for (const g of groups) {
     const id = g.canonical.batchId;
     if (id) batchSizes.set(id, (batchSizes.get(id) ?? 0) + 1);
+    if (g.canonical.poolId)
+      poolSizes.set(g.canonical.poolId, (poolSizes.get(g.canonical.poolId) ?? 0) + 1);
   }
 
   const domains = partitionByDomain(groups);
@@ -207,6 +224,11 @@ export function buildGroupedGraph(
       method: g.canonical.method,
       url: g.canonical.url,
       status: g.canonical.status,
+      transport: g.canonical.transport,
+      error: g.canonical.error,
+      timedOut: g.canonical.timedOut,
+      poolId: g.canonical.poolId,
+      poolSize: g.canonical.poolId ? (poolSizes.get(g.canonical.poolId) ?? 0) : 0,
       duration: g.canonical.duration,
       x: orientation === "horizontal" ? i * X_GAP + DOMAIN_PADDING : DOMAIN_PADDING,
       y: orientation === "horizontal" ? DOMAIN_PADDING : i * Y_GAP + DOMAIN_PADDING,

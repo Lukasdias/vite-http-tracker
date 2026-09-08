@@ -36,4 +36,17 @@ describe("patchFetch", () => {
     expect(typeof rec.requestHash).toBe("string");
     restore();
   });
+  test("emits an error record when fetch rejects", async () => {
+    const captured: Record<string, unknown>[] = [];
+    window.fetch = (async () => {
+      throw new DOMException("The operation was aborted", "AbortError");
+    }) as unknown as typeof window.fetch;
+    const restore = patchFetch({
+      enqueue: (record: Record<string, unknown>) => captured.push(record),
+    } as never);
+    await expect(window.fetch("/slow")).rejects.toThrow("aborted");
+    expect(captured[0]?.status).toBe(0);
+    expect(captured[0]?.timedOut).toBe(true);
+    restore();
+  });
 });

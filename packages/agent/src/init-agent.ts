@@ -1,6 +1,7 @@
 import { DEFAULT_SERVER_URL, DEFAULT_TOKEN } from "@vite-http-tracker/shared";
 import { patchFetch } from "./patch-fetch.js";
 import { patchXhr } from "./patch-xhr.js";
+import { patchEventSource, patchWebSocket } from "./patch-streams.js";
 import { WsTransport } from "./transport.js";
 import { mountIndicator } from "./indicator.js";
 
@@ -35,9 +36,13 @@ export function initAgent(opts: AgentOptions = {}): (() => void)[] {
   const strictMode = opts.strictMode ?? false;
   const restoreFetch = patchFetch({ enqueue: (r) => transport.enqueue(r) }, strictMode);
   const restoreXhr = patchXhr({ enqueue: (r) => transport.enqueue(r) }, strictMode);
+  const restoreEventSource = patchEventSource({ enqueue: (r) => transport.enqueue(r) }, strictMode);
+  const restoreWebSocket = patchWebSocket({ enqueue: (r) => transport.enqueue(r) }, strictMode);
   return [
     restoreFetch,
     restoreXhr,
+    restoreEventSource,
+    restoreWebSocket,
     () => {
       transport.close();
       indicator?.remove();

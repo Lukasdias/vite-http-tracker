@@ -102,11 +102,25 @@ export function InspectPanel({ group, record, onClose }: InspectPanelProps) {
           </div>
           <div className="mt-1 text-xs text-base-content/70">
             {t("statusSummary", {
-              status: record.status,
+              status: record.status || record.eventType || "error",
               duration: record.duration,
               bytes: record.bodySizeBytes ?? 0,
             })}
           </div>
+          {(record.transport || record.poolId || record.error) && (
+            <div className="mt-2 flex flex-wrap gap-1 text-[10px]">
+              {record.transport && (
+                <span className="badge badge-ghost badge-xs">{record.transport}</span>
+              )}
+              {record.poolId && (
+                <span className="badge badge-info badge-outline badge-xs">
+                  pool:{record.poolId}
+                </span>
+              )}
+              {record.timedOut && <span className="badge badge-warning badge-xs">timeout</span>}
+              {record.error && <span className="text-error">{record.error}</span>}
+            </div>
+          )}
           {isGroup && (
             <div className="badge badge-outline badge-sm mt-2 text-warning">
               {t("duplicateCount", {

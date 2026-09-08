@@ -4,6 +4,11 @@ export interface RequestRecord {
   method: string;
   url: string;
   status: number;
+  transport?: "fetch" | "xhr" | "sse" | "websocket";
+  error?: string;
+  timedOut?: boolean;
+  eventType?: "open" | "message" | "error" | "close";
+  poolId?: string;
   initiator?: string;
   startTime: number;
   endTime: number;
