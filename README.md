@@ -301,6 +301,11 @@ npm pack --dry-run
 
 ## Reading the timeline
 
+<img width="1710" height="994" alt="image" src="https://github.com/user-attachments/assets/a167ada5-0b5a-4e99-8882-09259262a511" />
+<img width="2559" height="1079" alt="image" src="https://github.com/user-attachments/assets/7c2e7d2c-14dc-45d8-8608-fe9a62861e61" />
+<img width="1712" height="1077" alt="image" src="https://github.com/user-attachments/assets/ee5a36e5-dd58-44c7-8665-570475931f5f" />
+
+
 - **Timeline:** requests are ordered by start time — earlier calls to the _left_ (horizontal) or _top_ (vertical) — and connected by animated arrows. `→`/`↓` toggles orientation.
 - **`×2` badge:** Strict-Mode duplicate (identical `method`+`url`+body within 200ms) collapsed to one node; labeled "likely strict mode" when the app builds with Strict Mode enabled. Click to expand the duplicate list in the inspector.
 - **`⚡×N` badge + dashed border:** parallel batch — calls started in the same turn (≤2ms apart, before any of them resolved), i.e. `Promise.all`/`Promise.allSettled`. These are not chained (no arrow).
