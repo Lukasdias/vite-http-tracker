@@ -10,6 +10,8 @@ export interface AgentOptions {
   token?: string;
   strictMode?: boolean;
   indicator?: { logoUrl: string };
+  captureStreamMessages?: boolean;
+  maxStreamEventsPerConnection?: number;
 }
 
 export function initAgent(opts: AgentOptions = {}): (() => void)[] {
@@ -36,8 +38,20 @@ export function initAgent(opts: AgentOptions = {}): (() => void)[] {
   const strictMode = opts.strictMode ?? false;
   const restoreFetch = patchFetch({ enqueue: (r) => transport.enqueue(r) }, strictMode);
   const restoreXhr = patchXhr({ enqueue: (r) => transport.enqueue(r) }, strictMode);
-  const restoreEventSource = patchEventSource({ enqueue: (r) => transport.enqueue(r) }, strictMode);
-  const restoreWebSocket = patchWebSocket({ enqueue: (r) => transport.enqueue(r) }, strictMode);
+  const streamOptions = {
+    captureMessages: opts.captureStreamMessages ?? false,
+    maxMessages: opts.maxStreamEventsPerConnection,
+  };
+  const restoreEventSource = patchEventSource(
+    { enqueue: (r) => transport.enqueue(r) },
+    strictMode,
+    streamOptions,
+  );
+  const restoreWebSocket = patchWebSocket(
+    { enqueue: (r) => transport.enqueue(r) },
+    strictMode,
+    streamOptions,
+  );
   return [
     restoreFetch,
     restoreXhr,

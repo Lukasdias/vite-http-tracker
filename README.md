@@ -329,6 +329,8 @@ Duplicate and parallel labels are also timing heuristics, not guarantees.
 | `token`         | `dev`               | Shared auth token. Required on every ingest/upgrade path.                      |
 | `autoInject`    | `true`              | Whether to inject the agent into the dev build.                                |
 | `showIndicator` | `true`              | Whether the injected dev agent shows the connection button in the tracked app. |
+| `captureStreamMessages` | `false` | Whether to add every SSE/WebSocket message to the timeline. Lifecycle events remain captured. |
+| `maxStreamEventsPerConnection` | `100` | Maximum SSE/WebSocket messages captured per connection when message capture is enabled. |
 
 CLI `vite-http-tracker`:
 
@@ -349,7 +351,7 @@ UI can point at a different server via the `ws` query param (for example, `?toke
 ## Limitations
 
 - **Dev-tools parity is partial.** DevTools is CORS-exempt; page JavaScript is not. Cross-origin calls the app cannot read are captured as metadata only (`opaque`). The tool is strictly less capable than the Network panel for response bodies.
-- **Streaming / non-serializable bodies** (`SSE`, `ReadableStream`, `FormData`, `Blob`) are not captured (marked `streaming`/`bodyTruncated` as appropriate).
+- **Streaming / non-serializable bodies** (`ReadableStream`, `FormData`, `Blob`) are not captured. SSE/WebSocket lifecycle events are captured, while individual stream messages are disabled by default and can be enabled with `captureStreamMessages`.
 - **Dev-only injection.** The Vite plugin has `apply: "serve"` — it injects the agent only in dev, not in production builds.
 - **WSL networking.** The server binds `127.0.0.1`. In WSL2, access it via `localhost` forwarding (Windows browser → WSL), not the WSL IP, unless the server binds a non-loopback interface.
 - **Local-only security.** The default server is intended for local development. Keep the token private, and do not expose the server beyond the loopback interface without adding an explicit security boundary.

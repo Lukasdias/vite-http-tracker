@@ -60,4 +60,22 @@ describe("WsTransport", () => {
     expect((t as any).buffer.length).toBe(0);
     t.close();
   });
+  test("does not resend an in-flight batch for every new record", () => {
+    const t = new WsTransport(makeOpts());
+    t.connect();
+    const sock = (t as any).socket as FakeSocket;
+    sock.readyState = FakeSocket.OPEN;
+    sock.onopen?.();
+
+    t.enqueue({ requestId: "1" } as never);
+    t.enqueue({ requestId: "2" } as never);
+    expect(sock.sent).toHaveLength(1);
+    expect(JSON.parse(sock.sent[0] ?? "{}").records).toHaveLength(1);
+
+    sock.onmessage?.({ data: JSON.stringify({ type: "acked", count: 1 }) });
+    expect(sock.sent).toHaveLength(2);
+    expect(JSON.parse(sock.sent[1] ?? "{}").records).toHaveLength(1);
+    expect(JSON.parse(sock.sent[1] ?? "{}").records[0].requestId).toBe("2");
+    t.close();
+  });
 });

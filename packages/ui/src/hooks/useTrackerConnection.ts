@@ -26,10 +26,11 @@ export function useTrackerConnection(url: string): TrackerConnection {
       const msg = JSON.parse(String(ev.data)) as { type: string; records?: RequestRecord[] };
       if (msg.type === "snapshot") qc.setQueryData(["requests"], msg.records ?? []);
       else if (msg.type === "records") {
-        qc.setQueryData(["requests"], (prev: RequestRecord[] | undefined) => [
-          ...(prev ?? []),
-          ...(msg.records ?? []),
-        ]);
+        qc.setQueryData(["requests"], (prev: RequestRecord[] | undefined) => {
+          const records = new Map((prev ?? []).map((record) => [record.requestId, record]));
+          for (const record of msg.records ?? []) records.set(record.requestId, record);
+          return [...records.values()].sort((a, b) => a.seq - b.seq);
+        });
       } else if (msg.type === "clear") {
         qc.setQueryData(["requests"], []);
       }

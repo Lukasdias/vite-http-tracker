@@ -73,6 +73,17 @@ test("showIndicator false keeps capture enabled without the indicator", async ()
   expect(module.options).toEqual({ token: "dev", strictMode: false });
 });
 
+test("passes stream capture options to the browser agent", async () => {
+  const module = await runAgentModule({
+    captureStreamMessages: true,
+    maxStreamEventsPerConnection: 25,
+  });
+  expect(module.options).toMatchObject({
+    captureStreamMessages: true,
+    maxStreamEventsPerConnection: 25,
+  });
+});
+
 test("autoInject false leaves the application HTML without an agent entry", async () => {
   expect(await injectedTags(viteHttpTracker({ autoInject: false }))).toEqual([]);
 });

@@ -6,6 +6,13 @@ interface StreamSink {
   enqueue(record: RequestRecord): void;
 }
 
+interface StreamOptions {
+  captureMessages?: boolean;
+  maxMessages?: number;
+}
+
+const DEFAULT_MAX_MESSAGES = 100;
+
 function streamRecord(
   url: string,
   method: string,
@@ -38,7 +45,11 @@ function streamRecord(
   };
 }
 
-export function patchEventSource(sink: StreamSink, strictMode = false): () => void {
+export function patchEventSource(
+  sink: StreamSink,
+  strictMode = false,
+  options: StreamOptions = {},
+): () => void {
   const Original = window.EventSource;
   if (typeof Original !== "function") return () => {};
   const Patched = class extends Original {
@@ -48,6 +59,7 @@ export function patchEventSource(sink: StreamSink, strictMode = false): () => vo
     constructor(url: string | URL, eventSourceInitDict?: EventSourceInit) {
       super(url, eventSourceInitDict);
       this.streamUrl = typeof url === "string" ? url : url.toString();
+      let messageCount = 0;
       this.addEventListener("open", () =>
         sink.enqueue(
           streamRecord(
@@ -62,20 +74,24 @@ export function patchEventSource(sink: StreamSink, strictMode = false): () => vo
           ),
         ),
       );
-      this.addEventListener("message", (event) =>
-        sink.enqueue(
-          streamRecord(
-            this.streamUrl,
-            "SSE",
-            "sse",
-            "message",
-            this.startedAt,
-            event.data,
-            200,
-            strictMode,
-          ),
-        ),
-      );
+      if (options.captureMessages) {
+        this.addEventListener("message", (event) => {
+          if (messageCount >= (options.maxMessages ?? DEFAULT_MAX_MESSAGES)) return;
+          messageCount++;
+          sink.enqueue(
+            streamRecord(
+              this.streamUrl,
+              "SSE",
+              "sse",
+              "message",
+              this.startedAt,
+              event.data,
+              200,
+              strictMode,
+            ),
+          );
+        });
+      }
       this.addEventListener("error", () =>
         sink.enqueue(
           streamRecord(
@@ -98,7 +114,11 @@ export function patchEventSource(sink: StreamSink, strictMode = false): () => vo
   };
 }
 
-export function patchWebSocket(sink: StreamSink, strictMode = false): () => void {
+export function patchWebSocket(
+  sink: StreamSink,
+  strictMode = false,
+  options: StreamOptions = {},
+): () => void {
   const Original = window.WebSocket;
   if (typeof Original !== "function") return () => {};
   const Patched = class extends Original {
@@ -108,6 +128,7 @@ export function patchWebSocket(sink: StreamSink, strictMode = false): () => void
     constructor(url: string | URL, protocols?: string | string[]) {
       super(url, protocols);
       this.streamUrl = typeof url === "string" ? url : url.toString();
+      let messageCount = 0;
       this.addEventListener("open", () =>
         sink.enqueue(
           streamRecord(
@@ -122,20 +143,24 @@ export function patchWebSocket(sink: StreamSink, strictMode = false): () => void
           ),
         ),
       );
-      this.addEventListener("message", (event) =>
-        sink.enqueue(
-          streamRecord(
-            this.streamUrl,
-            "WS",
-            "websocket",
-            "message",
-            this.startedAt,
-            typeof event.data === "string" ? event.data : undefined,
-            101,
-            strictMode,
-          ),
-        ),
-      );
+      if (options.captureMessages) {
+        this.addEventListener("message", (event) => {
+          if (messageCount >= (options.maxMessages ?? DEFAULT_MAX_MESSAGES)) return;
+          messageCount++;
+          sink.enqueue(
+            streamRecord(
+              this.streamUrl,
+              "WS",
+              "websocket",
+              "message",
+              this.startedAt,
+              typeof event.data === "string" ? event.data : undefined,
+              101,
+              strictMode,
+            ),
+          );
+        });
+      }
       this.addEventListener("error", () =>
         sink.enqueue(
           streamRecord(

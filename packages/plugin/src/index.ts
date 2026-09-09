@@ -7,6 +7,8 @@ export interface ViteHttpTrackerOptions {
   token?: string;
   autoInject?: boolean;
   showIndicator?: boolean;
+  captureStreamMessages?: boolean;
+  maxStreamEventsPerConnection?: number;
 }
 
 const VIRTUAL_ID = "virtual:vite-http-tracker/agent";
@@ -63,6 +65,12 @@ export function viteHttpTracker(opts: ViteHttpTrackerOptions = {}): Plugin {
         const args: string[] = [];
         if (serverUrl) args.push(`serverUrl: ${JSON.stringify(serverUrl)}`);
         args.push(`token: ${JSON.stringify(token)}`, `strictMode: ${strictMode}`);
+        if (opts.captureStreamMessages !== undefined)
+          args.push(`captureStreamMessages: ${JSON.stringify(opts.captureStreamMessages)}`);
+        if (opts.maxStreamEventsPerConnection !== undefined)
+          args.push(
+            `maxStreamEventsPerConnection: ${JSON.stringify(opts.maxStreamEventsPerConnection)}`,
+          );
         const imports = ['import { initAgent } from "@vite-http-tracker/agent";'];
         if (showIndicator) {
           args.push(`indicator: { logoUrl: ${JSON.stringify(LOGO_DATA_URI)} }`);

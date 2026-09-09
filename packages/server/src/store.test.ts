@@ -35,4 +35,11 @@ describe("RequestStore", () => {
     s.clear();
     expect(s.count()).toBe(0);
   });
+  test("ignores a replayed request id", () => {
+    const s = new RequestStore({ byteCap: 1000 });
+    expect(s.add(mk(1, 10))).toBe(true);
+    expect(s.add(mk(1, 10))).toBe(false);
+    expect(s.count()).toBe(1);
+    expect(s.sizeInBytes).toBe(10);
+  });
 });

@@ -19,6 +19,8 @@ export class WsTransport {
   private token: string;
   private ringSize: number;
   private buffer: RequestRecord[] = [];
+  private inFlightCount = 0;
+  private inFlightIds = new Set<string>();
   private socket: WebSocket | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private readonly onAck: (n: number) => void;
@@ -70,19 +72,30 @@ export class WsTransport {
       if (this.isClosed || this.socket !== sock) return;
       try {
         const msg = JSON.parse(String(ev.data)) as { type: string; count?: number };
-        if (msg.type === "acked" && typeof msg.count === "number") {
-          this.buffer.splice(0, Math.min(msg.count, this.buffer.length));
+        if (
+          msg.type === "acked" &&
+          typeof msg.count === "number" &&
+          msg.count === this.inFlightCount
+        ) {
+          this.buffer = this.buffer.filter((record) => !this.inFlightIds.has(record.requestId));
+          this.inFlightCount = 0;
+          this.inFlightIds.clear();
           this.onAck(msg.count);
+          this.flush();
         }
       } catch {}
     };
     sock.onclose = () => {
       if (this.isClosed || this.socket !== sock) return;
+      this.inFlightCount = 0;
+      this.inFlightIds.clear();
       this.setConnectionState("disconnected");
       this.scheduleReconnect();
     };
     sock.onerror = () => {
       if (this.isClosed || this.socket !== sock) return;
+      this.inFlightCount = 0;
+      this.inFlightIds.clear();
       this.setConnectionState("disconnected");
       sock.close();
     };
@@ -90,6 +103,8 @@ export class WsTransport {
 
   close(): void {
     this.isClosed = true;
+    this.inFlightCount = 0;
+    this.inFlightIds.clear();
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
     this.reconnectTimer = null;
     this.socket?.close();
@@ -98,9 +113,23 @@ export class WsTransport {
   }
 
   private flush(): void {
-    if (!this.socket || this.socket.readyState !== WebSocket.OPEN || this.buffer.length === 0)
+    if (
+      !this.socket ||
+      this.socket.readyState !== WebSocket.OPEN ||
+      this.buffer.length === 0 ||
+      this.inFlightCount > 0
+    )
       return;
-    this.socket.send(JSON.stringify({ type: "records", token: this.token, records: this.buffer }));
+    const records = this.buffer.slice();
+    this.inFlightCount = records.length;
+    this.inFlightIds = new Set(records.map((record) => record.requestId));
+    try {
+      this.socket.send(JSON.stringify({ type: "records", token: this.token, records }));
+    } catch {
+      this.inFlightCount = 0;
+      this.inFlightIds.clear();
+      this.socket.close();
+    }
   }
 
   private scheduleReconnect(): void {

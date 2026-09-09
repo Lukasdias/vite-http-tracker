@@ -32,8 +32,8 @@ export function startServer(
       return c.json({ error: "unauthorized" }, 401);
     const payload = parseRecordsPayload(body);
     if (!payload) return c.json({ error: "invalid_payload" }, 400);
-    for (const r of payload.records) store.add(r);
-    broadcast({ type: "records", records: payload.records });
+    const records = payload.records.filter((record) => store.add(record));
+    if (records.length > 0) broadcast({ type: "records", records });
     return c.json({ ok: true });
   });
 
@@ -111,9 +111,9 @@ export function startServer(
           return;
         const msg = parseRecordsMessage(raw);
         if (msg) {
-          for (const r of msg.records) store.add(r);
+          const records = msg.records.filter((record) => store.add(record));
           ws.send(JSON.stringify({ type: "acked", count: msg.records.length }));
-          broadcast({ type: "records", records: msg.records });
+          if (records.length > 0) broadcast({ type: "records", records });
         } else if (typeof raw === "object" && (raw as Record<string, unknown>).type === "clear") {
           store.clear();
           broadcast({ type: "clear" });
