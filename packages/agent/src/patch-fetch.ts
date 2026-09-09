@@ -1,5 +1,13 @@
 import { type RequestRecord, DEFAULT_BODY_CAP } from "@vite-http-tracker/shared";
-import { batchFor, hashRequest, newId, nextSeq, parseHeaders, serializeBody } from "./capture.js";
+import {
+  batchFor,
+  hashRequest,
+  newId,
+  nextSeq,
+  parseHeaders,
+  readStreamBody,
+  serializeBody,
+} from "./capture.js";
 import { redactHeaders, redactString } from "./redact.js";
 
 interface FetchSink {
@@ -27,17 +35,20 @@ export function patchFetch(sink: FetchSink, strictMode = false): () => void {
         let truncated = false;
         let opaque = false;
         let streaming = false;
+        let responseSizeBytes = Number(bodySize ?? 0) || 0;
         try {
           const ct = res.headers.get("content-type") ?? "";
           if (ct.includes("text/event-stream")) {
             streaming = true;
           } else if (bodySize && Number(bodySize) > DEFAULT_BODY_CAP) {
             truncated = true;
-          } else if (res.body) {
-            responseBody = String(await res.clone().text());
-            if (responseBody.length > DEFAULT_BODY_CAP) {
-              responseBody = undefined;
-              truncated = true;
+          } else {
+            const clone = res.clone();
+            if (clone.body) {
+              const bodyResult = await readStreamBody(clone.body);
+              responseBody = bodyResult.body;
+              truncated = bodyResult.truncated;
+              responseSizeBytes = bodyResult.size;
             }
           }
         } catch {
@@ -59,7 +70,7 @@ export function patchFetch(sink: FetchSink, strictMode = false): () => void {
           bodyTruncated: truncated || bodyResult.truncated,
           opaque,
           streaming,
-          bodySizeBytes: responseBody ? responseBody.length : Number(bodySize ?? 0) || 0,
+          bodySizeBytes: responseSizeBytes,
           requestHash,
           strictMode,
           batchId: batchFor(startTime),

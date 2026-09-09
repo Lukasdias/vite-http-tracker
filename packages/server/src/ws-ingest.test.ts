@@ -54,4 +54,21 @@ describe("agent WS ingestion", () => {
     dash.close();
     agent.close();
   });
+
+  test("rejects an invalid records message", async () => {
+    const agent = new WebSocket(eventsUrl);
+    await new Promise<void>((resolve) => {
+      agent.onopen = () => resolve();
+    });
+    const error = nextType(agent, "error");
+    agent.send(
+      JSON.stringify({
+        type: "records",
+        token: "dev",
+        records: [{ requestId: "invalid" }],
+      }),
+    );
+    expect(await error).toEqual({ type: "error", error: "invalid_payload" });
+    agent.close();
+  });
 });

@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import {
   ArrowDownIcon,
   ArrowRightIcon,
+  Crosshair2Icon,
   EnterFullScreenIcon,
   LayersIcon,
   Link2Icon,
@@ -25,6 +26,7 @@ export interface HeaderProps {
   orientation: Orientation;
   onOrientation: (o: Orientation) => void;
   onClear: () => void;
+  onRecenter: () => void;
   onFitView: () => void;
   onZoomIn: () => void;
   onZoomOut: () => void;
@@ -111,6 +113,7 @@ export function Header({
   orientation,
   onOrientation,
   onClear,
+  onRecenter,
   onFitView,
   onZoomIn,
   onZoomOut,
@@ -243,6 +246,9 @@ export function Header({
           <div className="flex gap-1">
             <ToolButton onClick={onZoomOut} title={t("zoomOut")}>
               <ZoomOutIcon className={icon} />
+            </ToolButton>
+            <ToolButton onClick={onRecenter} title={t("recenterTimeline")}>
+              <Crosshair2Icon className={icon} />
             </ToolButton>
             <ToolButton onClick={onFitView} title={t("fitView")}>
               <EnterFullScreenIcon className={icon} />

@@ -1,6 +1,7 @@
 /// <reference lib="dom" />
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { GlobalRegistrator } from "@happy-dom/global-registrator";
+import { DEFAULT_BODY_CAP } from "@vite-http-tracker/shared";
 import { patchFetch } from "./patch-fetch.js";
 
 beforeAll(() => {
@@ -47,6 +48,28 @@ describe("patchFetch", () => {
     await expect(window.fetch("/slow")).rejects.toThrow("aborted");
     expect(captured[0]?.status).toBe(0);
     expect(captured[0]?.timedOut).toBe(true);
+    restore();
+  });
+  test("does not retain a response body larger than the cap", async () => {
+    const captured: Record<string, unknown>[] = [];
+    const largeBody = "x".repeat(DEFAULT_BODY_CAP + 1);
+    const response = new Response(largeBody, {
+      status: 200,
+      headers: {
+        "content-type": "text/plain",
+        "content-length": String(DEFAULT_BODY_CAP + 1),
+      },
+    });
+    window.fetch = (async () => response) as unknown as typeof window.fetch;
+    const restore = patchFetch({
+      enqueue: (record: Record<string, unknown>) => captured.push(record),
+    } as never);
+
+    await window.fetch("/large");
+
+    expect(captured[0]?.responseBody).toBeUndefined();
+    expect(captured[0]?.bodyTruncated).toBe(true);
+    expect(captured[0]?.bodySizeBytes).toBeGreaterThan(DEFAULT_BODY_CAP);
     restore();
   });
 });

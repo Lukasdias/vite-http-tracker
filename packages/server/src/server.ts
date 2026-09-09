@@ -2,6 +2,7 @@ import { join, extname } from "node:path";
 import { Hono } from "hono";
 import type { ServerWebSocket } from "bun";
 import { DEFAULT_SERVER_PORT, DEFAULT_TOKEN, type RequestRecord } from "@vite-http-tracker/shared";
+import { parseRecordsMessage, parseRecordsPayload } from "./protocol.js";
 import { RequestStore } from "./store.js";
 
 export interface ServerOptions {
@@ -21,10 +22,18 @@ export function startServer(
   const app = new Hono();
 
   app.post("/events", async (c) => {
-    const j = (await c.req.json()) as { token?: string; records?: RequestRecord[] };
-    if (j.token !== token) return c.json({ error: "unauthorized" }, 401);
-    for (const r of j.records ?? []) store.add(r);
-    broadcast({ type: "records", records: j.records ?? [] });
+    let body: unknown;
+    try {
+      body = await c.req.json();
+    } catch {
+      return c.json({ error: "invalid_json" }, 400);
+    }
+    if (!body || typeof body !== "object" || (body as Record<string, unknown>).token !== token)
+      return c.json({ error: "unauthorized" }, 401);
+    const payload = parseRecordsPayload(body);
+    if (!payload) return c.json({ error: "invalid_payload" }, 400);
+    for (const r of payload.records) store.add(r);
+    broadcast({ type: "records", records: payload.records });
     return c.json({ ok: true });
   });
 
@@ -91,20 +100,25 @@ export function startServer(
         dashboards.add(ws);
       },
       message(ws, message) {
-        const msg = JSON.parse(String(message)) as {
-          type?: string;
-          token?: string;
-          records?: RequestRecord[];
-        };
-        if (msg.type === "records") {
-          if (msg.token !== token) return;
-          for (const r of msg.records ?? []) store.add(r);
-          ws.send(JSON.stringify({ type: "acked", count: msg.records?.length ?? 0 }));
-          broadcast({ type: "records", records: msg.records ?? [] });
-        } else if (msg.type === "clear") {
-          if (msg.token !== token) return;
+        let raw: unknown;
+        try {
+          raw = JSON.parse(String(message));
+        } catch {
+          ws.send(JSON.stringify({ type: "error", error: "invalid_json" }));
+          return;
+        }
+        if (!raw || typeof raw !== "object" || (raw as Record<string, unknown>).token !== token)
+          return;
+        const msg = parseRecordsMessage(raw);
+        if (msg) {
+          for (const r of msg.records) store.add(r);
+          ws.send(JSON.stringify({ type: "acked", count: msg.records.length }));
+          broadcast({ type: "records", records: msg.records });
+        } else if (typeof raw === "object" && (raw as Record<string, unknown>).type === "clear") {
           store.clear();
           broadcast({ type: "clear" });
+        } else {
+          ws.send(JSON.stringify({ type: "error", error: "invalid_payload" }));
         }
       },
       close(ws) {

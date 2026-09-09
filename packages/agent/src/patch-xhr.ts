@@ -1,4 +1,4 @@
-import { type RequestRecord } from "@vite-http-tracker/shared";
+import { DEFAULT_BODY_CAP, type RequestRecord } from "@vite-http-tracker/shared";
 import { batchFor, hashRequest, newId, nextSeq, parseHeaders, serializeBody } from "./capture.js";
 import { redactHeaders, redactString } from "./redact.js";
 
@@ -26,6 +26,9 @@ export function patchXhr(sink: XhrSink, strictMode = false): () => void {
       this.bodyResult = pending;
       this.addEventListener("loadend", () => {
         const end = Date.now();
+        const responseText = String(this.responseText ?? "");
+        const responseSizeBytes = new TextEncoder().encode(responseText).byteLength;
+        const responseBody = responseSizeBytes > DEFAULT_BODY_CAP ? undefined : responseText;
         const record: RequestRecord = {
           requestId: newId(),
           seq: this.seq,
@@ -40,9 +43,9 @@ export function patchXhr(sink: XhrSink, strictMode = false): () => void {
             parseHeaders(new Headers(this.getAllResponseHeaders() as unknown as HeadersInit)),
           ),
           requestBody: pending.body ? redactString(pending.body) : undefined,
-          responseBody: redactString(String(this.responseText ?? "")),
-          bodyTruncated: pending.truncated,
-          bodySizeBytes: (this.responseText ?? "").length,
+          responseBody: responseBody === undefined ? undefined : redactString(responseBody),
+          bodyTruncated: pending.truncated || responseSizeBytes > DEFAULT_BODY_CAP,
+          bodySizeBytes: responseSizeBytes,
           requestHash: hashRequest(this.method, this.url, pending.body),
           strictMode,
           batchId: batchFor(this.start),

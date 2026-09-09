@@ -57,6 +57,18 @@ describe("server", () => {
     });
     expect(res.status).toBe(401);
   });
+  test("rejects ingestion with an invalid record payload", async () => {
+    const res = await fetch(base + "/events", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        token: "dev",
+        records: [{ requestId: "invalid", method: "GET" }],
+      }),
+    });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "invalid_payload" });
+  });
   afterAll(async () => {
     if (srv) await srv.close();
   });

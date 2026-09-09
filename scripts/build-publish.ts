@@ -31,6 +31,10 @@ await cp(
   new URL("packages/shared/src/logo.svg", distRoot),
 );
 
+if ((await readdir(distRoot)).some((entry) => entry === "apps")) {
+  throw new Error("Publish output must not contain test applications");
+}
+
 async function rewriteInternalImports(directory: URL): Promise<void> {
   for (const entry of await readdir(directory, { withFileTypes: true })) {
     if (entry.isDirectory()) {

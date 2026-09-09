@@ -29,6 +29,37 @@ export interface BodyResult {
   size: number;
 }
 
+export async function readStreamBody(
+  stream: ReadableStream<Uint8Array>,
+  cap = DEFAULT_BODY_CAP,
+): Promise<BodyResult> {
+  const reader = stream.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  try {
+    while (true) {
+      const next = await reader.read();
+      if (next.done) break;
+      const chunk = next.value;
+      size += chunk.byteLength;
+      if (size > cap) {
+        await reader.cancel();
+        return { body: undefined, truncated: true, size };
+      }
+      chunks.push(chunk);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) {
+    bytes.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return { body: new TextDecoder().decode(bytes), truncated: false, size };
+}
+
 export function serializeBody(input: unknown, cap = DEFAULT_BODY_CAP): BodyResult {
   if (input == null) return { body: undefined, truncated: false, size: 0 };
   if (
@@ -51,7 +82,7 @@ export function serializeBody(input: unknown, cap = DEFAULT_BODY_CAP): BodyResul
   } else {
     return { body: undefined, truncated: false, size: 0 };
   }
-  const size = text.length;
+  const size = new TextEncoder().encode(text).byteLength;
   if (size > cap) return { body: undefined, truncated: true, size };
   return { body: text, truncated: false, size };
 }

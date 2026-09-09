@@ -1,6 +1,6 @@
 # vite-http-tracker
 
-A developer-experience tool that captures the HTTP requests a frontend app makes (the same traffic you see in the browser Network panel) and renders them as an interactive time-ordered graph on a separate port.
+A developer-experience tool that captures the HTTP requests a frontend app makes (the same traffic you see in the browser Network panel) and renders them as an interactive timeline on a separate port.
 
 The tool intercepts `fetch`/`XMLHttpRequest` in the running app, sends each request to a sidecar server, and shows a timeline of the app's HTTP events — including Strict-Mode duplicate detection and parallel-batch grouping — without requiring code changes.
 
@@ -8,7 +8,7 @@ The tool intercepts `fetch`/`XMLHttpRequest` in the running app, sends each requ
 
 - Captures `fetch` and `XMLHttpRequest` traffic: method, URL, status, timing, headers, and (size-capped + redacted) request/response bodies.
 - Runs as a sidecar on its own port (`4000`), independent from the tracked app's dev server.
-- Renders a chronological timeline graph, orientable horizontally or vertically, with animated arrow edges showing event order.
+- Renders a chronological HTTP request timeline, orientable horizontally or vertically, with animated arrows showing event order.
 - Detects **React Strict-Mode double-invocation**: identical requests fired back-to-back are collapsed into one node with a `×2` badge and a "likely strict mode" label.
 - Detects **parallel batches** (`Promise.all`/`Promise.allSettled` / same-turn calls): requests started in the same turn are marked `⚡×N` with a dashed border.
 - Filters by method/status/URL, and an inspector panel shows full headers / body / timing per request.
@@ -57,19 +57,19 @@ The agent can also be wired up manually in a Vite app — `import { initAgent } 
 
 ## Packages
 
-| Package | Responsibility |
-|---|---|
-| `packages/shared` | `RequestRecord` type + constants (caps, redaction tokens, dedup/batch windows, defaults). |
-| `packages/agent` | Browser library. Patches `fetch`/`XMLHttpRequest`, captures records, streams over WebSocket with a ring buffer + reconnect + ack replay. |
-| `packages/server` | Bun + Hono + native WebSocket. Ingests records, byte-LRU store, broadcasts to dashboards, serves the UI, CLI `vite-http-tracker`. |
-| `packages/ui` | React 19 dashboard: React Flow timeline, filters, inspector, dedup/batch logic. |
-| `packages/plugin` | Vite plugin `viteHttpTracker()`: auto-injects the agent into the dev build and detects Strict Mode from source. |
-| `apps/react-app` | Sample React 19 app (per-scenario buttons) used to exercise the tool. |
-| `apps/vue-app` | Sample Vue 3 app used to manually verify Vite injection. |
-| `apps/solid-app` | Sample Solid app used to manually verify Vite injection. |
-| `apps/svelte-app` | Sample Svelte 5 app used to manually verify Vite injection. |
-| `apps/preact-app` | Sample Preact app used to manually verify Vite injection. |
-| `apps/vanilla-app` | Plain TypeScript Vite app used to verify framework-independent injection. |
+| Package            | Responsibility                                                                                                                           |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/shared`  | `RequestRecord` type + constants (caps, redaction tokens, dedup/batch windows, defaults).                                                |
+| `packages/agent`   | Browser library. Patches `fetch`/`XMLHttpRequest`, captures records, streams over WebSocket with a ring buffer + reconnect + ack replay. |
+| `packages/server`  | Bun + Hono + native WebSocket. Ingests records, byte-LRU store, broadcasts to dashboards, serves the UI, CLI `vite-http-tracker`.        |
+| `packages/ui`      | React 19 dashboard: React Flow timeline, filters, inspector, dedup/batch logic.                                                          |
+| `packages/plugin`  | Vite plugin `viteHttpTracker()`: auto-injects the agent into the dev build and detects Strict Mode from source.                          |
+| `apps/react-app`   | Sample React 19 app (per-scenario buttons) used to exercise the tool.                                                                    |
+| `apps/vue-app`     | Sample Vue 3 app used to manually verify Vite injection.                                                                                 |
+| `apps/solid-app`   | Sample Solid app used to manually verify Vite injection.                                                                                 |
+| `apps/svelte-app`  | Sample Svelte 5 app used to manually verify Vite injection.                                                                              |
+| `apps/preact-app`  | Sample Preact app used to manually verify Vite injection.                                                                                |
+| `apps/vanilla-app` | Plain TypeScript Vite app used to verify framework-independent injection.                                                                |
 
 ## Getting started
 
@@ -97,28 +97,185 @@ The repository also includes Vite fixtures for Vue, Solid, Svelte, Preact, and v
 
 To start the tracker and a fixture together, use `bun run dev:all:<fixture>` where `<fixture>` is `react`, `vue`, `solid`, `svelte`, `preact`, or `vanilla`.
 
-### Use on your own Vite app
+### Which package should I use?
 
-Install the published package in your app:
+#### I want the most plug-and-play setup. What should I install?
+
+Install only `vite-http-tracker` as a development dependency. It includes the
+Vite plugin, browser agent, tracker server, CLI, and dashboard:
 
 ```bash
-bun add -d vite-http-tracker
+npm install --save-dev vite-http-tracker
 ```
 
-Start the tracker with `bunx vite-http-tracker --no-open`, then add the plugin:
+Then add `viteHttpTracker()` to `vite.config.ts` and run the CLI in a second
+terminal. This is the recommended setup for almost every Vite application:
 
 ```ts
-// vite.config.ts
+import { defineConfig } from "vite";
+import { viteHttpTracker } from "vite-http-tracker/plugin";
+
+export default defineConfig({
+  plugins: [viteHttpTracker()],
+});
+```
+
+```bash
+bunx vite-http-tracker --no-open
+```
+
+Open <http://localhost:4000/?token=dev> and start your Vite app. No application
+code changes are required.
+
+### Runtime prerequisite: Bun
+
+Bun is required to run the tracker server and CLI:
+
+```bash
+bun --version # 1.4 or newer
+```
+
+The application being inspected does not need to use Bun. It can continue to
+use npm, pnpm, Yarn, or Bun for its own Vite development workflow. Installing
+the package also does not require Bun, but the local sidecar started with
+`vite-http-tracker` does because the server uses Bun's runtime and WebSocket
+server.
+
+#### When should I import `vite-http-tracker/plugin`?
+
+Use `vite-http-tracker/plugin` in `vite.config.ts` when you want automatic
+injection into the Vite development page. This is the normal integration and
+the only import needed for the plug-and-play setup.
+
+#### When should I import `vite-http-tracker/agent`?
+
+Use `vite-http-tracker/agent` only when you need to initialize the browser
+agent yourself, for example in a custom build tool, a non-standard Vite entry,
+or when automatic injection is disabled with `autoInject: false`.
+
+#### When should I use the server or CLI?
+
+Use the `vite-http-tracker` CLI to start the local sidecar and dashboard:
+
+```bash
+bunx vite-http-tracker --no-open
+```
+
+You do not need to import `vite-http-tracker/server` for the normal setup. Use
+that subpath only when embedding the server into another Bun-based tool or
+when you need to call `startServer()` programmatically.
+
+#### Do I need `@vite-http-tracker/*` packages?
+
+No. The `@vite-http-tracker/agent`, `@vite-http-tracker/plugin`,
+`@vite-http-tracker/server`, and `@vite-http-tracker/shared` packages are
+workspace implementation packages. For an application consuming the published
+library, install `vite-http-tracker` instead.
+
+### Install as a development dependency
+
+`vite-http-tracker` is a development tool. Install it as a `devDependency` in
+the Vite application you want to inspect:
+
+```bash
+# npm
+npm install --save-dev vite-http-tracker
+
+# pnpm
+pnpm add --save-dev vite-http-tracker
+
+# Yarn
+yarn add --dev vite-http-tracker
+
+# Bun
+bun add --dev vite-http-tracker
+```
+
+The package is intended to be used locally while developing. It is not
+injected into production builds: the Vite plugin uses `apply: "serve"`.
+
+### Use on your own Vite app
+
+Add the plugin to `vite.config.ts` (or `vite.config.js`):
+
+```ts
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { viteHttpTracker } from "vite-http-tracker/plugin";
 
 export default defineConfig({
-  plugins: [react(), viteHttpTracker({ serverUrl: "http://localhost:4000", token: "dev" })],
+  plugins: [
+    react(),
+    viteHttpTracker({
+      serverUrl: "http://localhost:4000",
+      token: "dev",
+    }),
+  ],
 });
 ```
 
-No other code changes are required. The agent connects to `ws://<page-host>:4000/events`.
+Start the sidecar in another terminal:
+
+```bash
+bunx vite-http-tracker --no-open
+# or: npx vite-http-tracker --no-open (Bun must be installed)
+# or: pnpm vite-http-tracker --no-open (Bun must be installed)
+# or: yarn vite-http-tracker --no-open (Bun must be installed)
+```
+
+Then start the Vite app as usual and open the dashboard at
+<http://localhost:4000/?token=dev>. The plugin injects the browser agent into
+the development page automatically, so no application code changes are
+required.
+
+The `token` must be the same in the plugin configuration, the CLI, and the
+dashboard URL. If `serverUrl` is omitted, the agent uses the current page host
+and port `4000`:
+
+```ts
+viteHttpTracker({ token: "dev" });
+```
+
+For non-React Vite apps, omit the framework plugin and keep
+`viteHttpTracker()` in the `plugins` array.
+
+### Optional: initialize the agent manually
+
+If automatic injection is not suitable, disable it and initialize the agent
+from application code:
+
+```ts
+// vite.config.ts
+viteHttpTracker({ autoInject: false, token: "dev" });
+```
+
+```ts
+import { initAgent } from "vite-http-tracker/agent";
+
+const cleanups = initAgent({
+  serverUrl: "http://localhost:4000",
+  token: "dev",
+});
+
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    for (const cleanup of cleanups) cleanup();
+  });
+}
+```
+
+### What is included in the published package
+
+The npm package contains the plugin, browser agent, server/CLI, shared runtime
+files, and the built dashboard. The repository's test applications under
+`apps/` are development fixtures only and are excluded from the published
+package. The package is assembled by `bun run build:publish` and can be
+inspected before release with:
+
+```bash
+bun run build:publish
+npm pack --dry-run
+```
 
 ## How to use
 
@@ -142,31 +299,43 @@ No other code changes are required. The agent connects to `ws://<page-host>:4000
 - **Bodies show as `opaque`** — the call is cross-origin and page JS can't read the response (CORS). DevTools is CORS-exempt; page code is not.
 - **WSL2** — open the dashboard via `localhost:<port>` forwarding, not the WSL IP.
 
-## Reading the graph
+## Reading the timeline
 
-- **Timeline:** nodes are ordered by start time — earlier calls to the *left* (horizontal) or *top* (vertical) — and connected by animated arrows. `→`/`↓` toggles orientation.
+- **Timeline:** requests are ordered by start time — earlier calls to the _left_ (horizontal) or _top_ (vertical) — and connected by animated arrows. `→`/`↓` toggles orientation.
 - **`×2` badge:** Strict-Mode duplicate (identical `method`+`url`+body within 200ms) collapsed to one node; labeled "likely strict mode" when the app builds with Strict Mode enabled. Click to expand the duplicate list in the inspector.
 - **`⚡×N` badge + dashed border:** parallel batch — calls started in the same turn (≤2ms apart, before any of them resolved), i.e. `Promise.all`/`Promise.allSettled`. These are not chained (no arrow).
 - **Status pill** reflects the response class (green 2xx / yellow 3xx / red 4xx+). Each node also shows duration and response size.
-- **Filters** (method / status / URL substring) narrow the graph; **Clear** empties the buffer via the server.
+- **Filters** (method / status / URL substring) narrow the timeline; **Clear** empties the buffer via the server.
+
+### What the timeline means
+
+This is an interactive timeline of HTTP requests, ordered chronologically and
+enriched with heuristics for duplicate detection and parallel grouping.
+
+An arrow means that one request was observed before another. It does not prove
+that the later request depended on the earlier one, that the application
+waited for it, or that one caused the other. The browser does not expose enough
+information for the agent to reconstruct application-level causality reliably.
+
+Duplicate and parallel labels are also timing heuristics, not guarantees.
 
 ## Configuration
 
 `viteHttpTracker(options)` (plugin):
 
-| Option | Default | Description |
-|---|---|---|
-| `serverUrl` | page host + `:4000` | Tracker server URL. If omitted, the agent derives the host from the page. |
-| `token` | `dev` | Shared auth token. Required on every ingest/upgrade path. |
-| `autoInject` | `true` | Whether to inject the agent into the dev build. |
-| `showIndicator` | `true` | Whether the injected dev agent shows the connection button in the tracked app. |
+| Option          | Default             | Description                                                                    |
+| --------------- | ------------------- | ------------------------------------------------------------------------------ |
+| `serverUrl`     | page host + `:4000` | Tracker server URL. If omitted, the agent derives the host from the page.      |
+| `token`         | `dev`               | Shared auth token. Required on every ingest/upgrade path.                      |
+| `autoInject`    | `true`              | Whether to inject the agent into the dev build.                                |
+| `showIndicator` | `true`              | Whether the injected dev agent shows the connection button in the tracked app. |
 
 CLI `vite-http-tracker`:
 
-| Flag | Default | Description |
-|---|---|---|
-| `--port` | `4000` | Dashboard/ingest port. |
-| `--token` | `dev` | Shared token. |
+| Flag        | Default      | Description                     |
+| ----------- | ------------ | ------------------------------- |
+| `--port`    | `4000`       | Dashboard/ingest port.          |
+| `--token`   | `dev`        | Shared token.                   |
 | `--no-open` | open browser | Do not auto-open the dashboard. |
 
 UI can point at a different server via the `ws` query param (for example, `?token=dev&ws=ws%3A%2F%2Flocalhost%3A9999%2Fws%3Ftoken%3Ddev`) or the `VITE_HTTP_TRACKER_URL` env var.
@@ -191,15 +360,16 @@ UI can point at a different server via the `ws` query param (for example, `?toke
 
 **Model:** `RequestRecord` in `packages/shared/src/types.ts` is the single canonical record type, flowing agent → server → UI.
 
-| Change | Where |
-|---|---|
-| New record field | add to `RequestRecord` in `shared`, populate it in the `agent` capture path, surface it in `ui` |
-| Graph behavior (dedup/batches/edges/layout) | pure functions in `ui/src/graph.ts` + `graph.test.ts` — keep React out of `graph.ts` |
-| Server behavior (endpoint/store/CLI flag) | `server/src/server.ts`, `store.ts`, `cli.ts`, mirrored in `server.test.ts` / `e2e.test.ts` |
-| Plugin behavior (injection/config) | `plugin/src/index.ts` (plugin is `apply: "serve"`, so verify with `vite dev`, not `vite build`) |
-| Sample scenarios | `apps/react-app/src/App.tsx` |
+| Change                                      | Where                                                                                           |
+| ------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| New record field                            | add to `RequestRecord` in `shared`, populate it in the `agent` capture path, surface it in `ui` |
+| Graph behavior (dedup/batches/edges/layout) | pure functions in `ui/src/graph.ts` + `graph.test.ts` — keep React out of `graph.ts`            |
+| Server behavior (endpoint/store/CLI flag)   | `server/src/server.ts`, `store.ts`, `cli.ts`, mirrored in `server.test.ts` / `e2e.test.ts`      |
+| Plugin behavior (injection/config)          | `plugin/src/index.ts` (plugin is `apply: "serve"`, so verify with `vite dev`, not `vite build`) |
+| Sample scenarios                            | `apps/react-app/src/App.tsx`                                                                    |
 
 **Commands:**
+
 ```bash
 bun test                                          # all tests (Bun runner)
 bunx tsc --noEmit -p packages/<pkg>/tsconfig.json  # typecheck one package
@@ -209,15 +379,17 @@ bun run --cwd packages/ui build                    # rebuild the dashboard bundl
 ```
 
 **Invariants to preserve:**
+
 - Server binds `127.0.0.1` only.
 - Token required on every ingest (`POST /events`) and every WS upgrade (`/events`, `/ws`).
 - Agent must append `?token=<token>` to its WS connect URL.
 - Caps: body `500_000` bytes, store `128 MB`, agent ring buffer `10_000` records, dedup window `200 ms`, batch window `2 ms`.
 - Sensitive headers/fields (`authorization`, `cookie`, `set-cookie`, `x-api-key`, `password`, `secret`, …) redacted to `[REDACTED]`.
 - `crypto.randomUUID()` must go through `newId()` in `capture.ts` (env-safe).
-- Dedup/batch are timing heuristics, not guarantees; graph edges are chronological, not causal.
+- Deduplication and parallel grouping are timing heuristics, not guarantees; timeline arrows represent chronological order, not causality.
 
 **Conventions:**
+
 - Lint/format via `oxlint` + `oxfmt` — no ESLint/Prettier.
 - Comments only when the "why" is non-obvious.
 - Explicit types on exports; no `any`; `import type` for type-only imports; import with a `.js` extension.

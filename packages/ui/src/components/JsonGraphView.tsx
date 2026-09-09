@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Background,
   MarkerType,
+  MiniMap,
   ReactFlow,
   ReactFlowProvider,
   useEdgesState,
@@ -65,6 +66,17 @@ function GraphCanvas({ nodes, edges }: { nodes: JsonFlowNode[]; edges: Edge[] })
       colorMode="dark"
     >
       <Background gap={24} size={1} />
+      <MiniMap
+        pannable
+        zoomable
+        ariaLabel="JSON structure overview"
+        bgColor="#111827"
+        maskColor="rgba(10, 14, 24, 0.72)"
+        nodeColor={(node) => (node.type === "container" ? "#54a7ff" : "#4ad295")}
+        nodeStrokeColor="#54a7ff"
+        nodeStrokeWidth={1}
+        nodeBorderRadius={2}
+      />
     </ReactFlow>
   );
 }

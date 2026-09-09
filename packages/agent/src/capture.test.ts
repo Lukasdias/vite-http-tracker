@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { batchFor, hashRequest, parseHeaders, serializeBody } from "./capture.js";
+import { batchFor, hashRequest, parseHeaders, readStreamBody, serializeBody } from "./capture.js";
+import { DEFAULT_BODY_CAP } from "@vite-http-tracker/shared";
 
 describe("serializeBody", () => {
   test("serializes JSON", () => {
@@ -19,6 +20,23 @@ describe("serializeBody", () => {
   });
   test("truncates bodies over cap", () => {
     expect(serializeBody({ a: "x".repeat(10) }, 5).truncated).toBe(true);
+  });
+});
+
+describe("readStreamBody", () => {
+  test("stops reading after the response body cap", async () => {
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode("x".repeat(DEFAULT_BODY_CAP + 1)));
+        controller.close();
+      },
+    });
+
+    const result = await readStreamBody(stream);
+
+    expect(result.body).toBeUndefined();
+    expect(result.truncated).toBe(true);
+    expect(result.size).toBeGreaterThan(DEFAULT_BODY_CAP);
   });
 });
 

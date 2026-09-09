@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import {
   Background,
   MarkerType,
+  MiniMap,
   ReactFlow,
   ReactFlowProvider,
   useEdgesState,
@@ -66,6 +67,17 @@ function FlowCanvas({
       onNodeClick={(_, node) => onNodeClick(node.id)}
     >
       <Background gap={24} size={1} />
+      <MiniMap
+        pannable
+        zoomable
+        ariaLabel="HTTP request timeline overview"
+        bgColor="#111827"
+        maskColor="rgba(10, 14, 24, 0.72)"
+        nodeColor={(node) => (node.type === "domain" ? "#54a7ff" : "#cfd3dc")}
+        nodeStrokeColor="#54a7ff"
+        nodeStrokeWidth={1}
+        nodeBorderRadius={2}
+      />
     </ReactFlow>
   );
 }
@@ -124,6 +136,11 @@ function Dashboard() {
     [domainNodes, nodes, groups, selected, orientation],
   );
 
+  const firstRequestNode = useMemo(
+    () => graphNodes.find((node) => node.type === "request"),
+    [graphNodes],
+  );
+
   const graphEdges = useMemo<Edge[]>(
     () =>
       edges.map((e) => ({
@@ -163,6 +180,9 @@ function Dashboard() {
         orientation={orientation}
         onOrientation={setOrientation}
         onClear={() => clear.mutate(token)}
+        onRecenter={() => {
+          if (firstRequestNode) fitView({ nodes: [firstRequestNode], padding: 0.8, duration: 350 });
+        }}
         onFitView={() => fitView({ padding: 0.2 })}
         onZoomIn={() => zoomIn({ duration: 160 })}
         onZoomOut={() => zoomOut({ duration: 160 })}
