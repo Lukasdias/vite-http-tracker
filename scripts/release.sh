@@ -17,10 +17,11 @@ require_command() {
 
 show_help() {
   cat <<'EOF'
-Usage: bash scripts/release.sh
+Usage: bash scripts/release.sh [patch|minor|major|VERSION]
 
-Creates an annotated version tag, pushes it to the official repository, and
-creates a GitHub Release with generated notes.
+Increments package.json's version (patch by default), commits the version
+bump, creates an annotated version tag, pushes both, and creates a GitHub
+Release with generated notes.
 
 The command is restricted to the repository owner and must run from a clean
 master branch that is synchronized with origin/master.
@@ -32,7 +33,7 @@ main() {
     show_help
     return 0
   fi
-  [[ $# -eq 0 ]] || fail "argumento desconhecido: $1"
+  [[ $# -le 1 ]] || fail "use apenas patch, minor, major ou uma versão explícita"
 
   require_command git
   require_command gh
@@ -42,7 +43,7 @@ main() {
     fail "execute a release a partir da branch $RELEASE_BRANCH"
   [[ -z "$(git status --porcelain)" ]] || fail "working tree não está limpa"
 
-  local authenticated_user repository version tag local_head remote_head
+  local authenticated_user repository version tag local_head remote_head bump
   authenticated_user="$(gh api user --jq '.login')"
   [[ "$authenticated_user" == "$RELEASE_OWNER" ]] ||
     fail "usuário GitHub não autorizado: $authenticated_user"
@@ -51,18 +52,46 @@ main() {
   [[ "$repository" == "$OFFICIAL_REPOSITORY" ]] ||
     fail "repositório não autorizado: $repository"
 
-  version="$(node -p "JSON.parse(require('fs').readFileSync('package.json', 'utf8')).version")"
-  [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] ||
-    fail "versão inválida no package.json: $version"
-  tag="v$version"
-
   git fetch origin "$RELEASE_BRANCH" --quiet
   local_head="$(git rev-parse HEAD)"
   remote_head="$(git rev-parse "origin/$RELEASE_BRANCH")"
   [[ "$local_head" == "$remote_head" ]] ||
     fail "master local não está sincronizado com origin/master"
+
+  bump="${1:-patch}"
+  version="$(node - "$bump" <<'NODE'
+const fs = require("fs");
+const bump = process.argv.at(-1);
+const packagePath = "package.json";
+const packageJson = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+const current = packageJson.version;
+const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(current);
+if (!match) throw new Error(`versão inválida no package.json: ${current}`);
+
+let next;
+if (/^\d+\.\d+\.\d+$/.test(bump)) {
+  next = bump;
+} else if (bump === "patch") {
+  next = `${match[1]}.${match[2]}.${Number(match[3]) + 1}`;
+} else if (bump === "minor") {
+  next = `${match[1]}.${Number(match[2]) + 1}.0`;
+} else if (bump === "major") {
+  next = `${Number(match[1]) + 1}.0.0`;
+} else {
+  throw new Error(`incremento inválido: ${bump}`);
+}
+
+packageJson.version = next;
+fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 2)}\n`);
+process.stdout.write(next);
+NODE
+)"
+  tag="v$version"
   git rev-parse "$tag" >/dev/null 2>&1 && fail "tag já existe: $tag"
 
+  git add package.json
+  git commit -m "chore: prepare release $tag"
+  git push origin "$RELEASE_BRANCH"
   git tag -a "$tag" -m "Release $tag"
   git push origin "$tag"
   gh release create "$tag" \
