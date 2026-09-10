@@ -63,6 +63,7 @@
     "test": "bun test",
     "build": "bun run build:publish",
     "build:ui": "bun run --cwd packages/ui build",
+    "release": "bash scripts/release.sh",
     "lint": "oxlint packages apps",
     "format": "oxfmt --write packages apps"
   },
