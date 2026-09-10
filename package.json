@@ -18,16 +18,17 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+ssh://git@github.com/Lukasdias/vite-http-tracker.git"
+    "url": "https://github.com/Lukasdias/vite-http-tracker"
   },
   "bin": {
-    "vite-http-tracker": "./dist/packages/server/src/cli.js"
+    "vite-http-tracker": "./bin/vite-http-tracker.js"
   },
   "workspaces": [
     "packages/*",
     "apps/*"
   ],
   "files": [
+    "bin",
     "dist",
     "LICENSE",
     "README.md"
