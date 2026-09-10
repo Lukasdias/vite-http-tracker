@@ -21,9 +21,13 @@ export function useGraph(
   filter: RecordFilter,
   showEdges: boolean,
   orientation: Orientation,
+  stackBursts = false,
 ): UseGraphResult {
   const requests = useRequests();
-  const groups = useMemo(() => groupRecords(requests), [requests]);
+  const groups = useMemo(
+    () => groupRecords(requests, undefined, stackBursts),
+    [requests, stackBursts],
+  );
   const filtered = useMemo(() => filterGroups(groups, filter), [groups, filter]);
   const graph = useMemo(
     () => buildGroupedGraph(filtered, showEdges, orientation),

@@ -11,7 +11,7 @@ import {
 } from "@xyflow/react";
 import type { Edge } from "@xyflow/react";
 import type { RequestRecord } from "@vite-http-tracker/shared";
-import { buildJsonGraph, toggleCollapse } from "../json-graph.js";
+import { buildJsonGraph, JSON_NODE_WIDTH, toggleCollapse } from "../json-graph.js";
 import type { JsonGraphNode } from "../json-graph.js";
 import { parseJson } from "../json.js";
 import { JsonContainerNode, type JsonContainerFlowNode } from "./JsonContainerNode.js";
@@ -36,6 +36,7 @@ function toFlowNodes(
       type: container ? "container" : "scalar",
       position: { x: n.x, y: n.y },
       data,
+      style: { width: JSON_NODE_WIDTH },
     } as JsonFlowNode;
   });
 }

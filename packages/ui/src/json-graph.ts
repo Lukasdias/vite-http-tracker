@@ -27,7 +27,8 @@ export interface JsonGraph {
 export type JsonGraphResult = { ok: true; graph: JsonGraph } | { ok: false; count: number };
 
 export const MAX_GRAPH_NODES = 2000;
-export const X_GAP = 220;
+export const JSON_NODE_WIDTH = 280;
+export const X_GAP = JSON_NODE_WIDTH + 60;
 export const Y_GAP = 40;
 
 export function countJsonNodes(value: JsonValue): number {

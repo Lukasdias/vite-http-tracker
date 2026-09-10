@@ -1,4 +1,13 @@
 import { describe, expect, test } from "bun:test";
+import { JSON_NODE_WIDTH } from "./json-graph.js";
+
+test("keeps JSON graph nodes within a readable width", () => {
+  expect(JSON_NODE_WIDTH).toBe(280);
+});
+
+test("leaves horizontal room for the fixed-width node", () => {
+  expect(X_GAP).toBeGreaterThan(JSON_NODE_WIDTH);
+});
 import {
   X_GAP,
   buildJsonGraph,

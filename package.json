@@ -63,6 +63,12 @@
     "test": "bun test",
     "build": "bun run build:publish",
     "build:ui": "bun run --cwd packages/ui build",
+    "test:react": "bun run --cwd apps/react-app dev -- --configLoader runner",
+    "test:vue": "bun run --cwd apps/vue-app dev -- --configLoader runner",
+    "test:solid": "bun run --cwd apps/solid-app dev -- --configLoader runner",
+    "test:svelte": "bun run --cwd apps/svelte-app dev -- --configLoader runner",
+    "test:preact": "bun run --cwd apps/preact-app dev -- --configLoader runner",
+    "test:vanilla": "bun run --cwd apps/vanilla-app dev -- --configLoader runner",
     "release": "bash scripts/release.sh",
     "lint": "oxlint packages apps",
     "format": "oxfmt --write packages apps"

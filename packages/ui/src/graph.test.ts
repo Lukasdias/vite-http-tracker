@@ -71,6 +71,39 @@ describe("matchesFilter", () => {
       streams.filter((r) => matchesFilter(r, { transport: "sse" })).map((r) => r.requestId),
     ).toEqual(["sse"]);
   });
+  test("supports multiple domain, method and transport selections", () => {
+    const recs = [
+      mk({
+        requestId: "api",
+        method: "GET",
+        transport: "fetch",
+        url: "https://api.example.com/users",
+      }),
+      mk({
+        requestId: "cdn",
+        method: "GET",
+        transport: "xhr",
+        url: "https://cdn.example.com/app.js",
+      }),
+      mk({
+        requestId: "other",
+        method: "POST",
+        transport: "fetch",
+        url: "https://other.example.com/events",
+      }),
+    ];
+    expect(
+      recs
+        .filter((record) =>
+          matchesFilter(record, {
+            domains: ["api.example.com", "cdn.example.com"],
+            methods: ["GET"],
+            transports: ["fetch", "xhr"],
+          }),
+        )
+        .map((record) => record.requestId),
+    ).toEqual(["api", "cdn"]);
+  });
 });
 
 describe("groupRecords", () => {
@@ -95,6 +128,16 @@ describe("groupRecords", () => {
     ];
     expect(groupRecords(recs).length).toBe(2);
   });
+  test("can stack rapid calls from the same domain and transport", () => {
+    const recs = [
+      mk({ requestId: "a", seq: 1, url: "https://analytics.example/collect?a=1", startTime: 0 }),
+      mk({ requestId: "b", seq: 2, url: "https://analytics.example/collect?a=2", startTime: 20 }),
+      mk({ requestId: "c", seq: 3, url: "https://api.example/users", startTime: 30 }),
+    ];
+    const groups = groupRecords(recs, 200, true);
+    expect(groups).toHaveLength(2);
+    expect(groups[0]!.members.map((record) => record.requestId)).toEqual(["a", "b"]);
+  });
 });
 
 describe("filterGroups", () => {
@@ -106,6 +149,14 @@ describe("filterGroups", () => {
     expect(filterGroups(groups, { status: "404" }).map((g) => g.canonical.requestId)).toEqual([
       "b",
     ]);
+  });
+  test("filters by hostname", () => {
+    expect(filterGroups(groups, { domain: "api.example.com" })).toHaveLength(0);
+    expect(
+      filterGroups(groupRecords([mk({ requestId: "api", url: "https://api.example.com/users" })]), {
+        domain: "api.example.com",
+      }),
+    ).toHaveLength(1);
   });
 });
 

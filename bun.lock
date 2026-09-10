@@ -4,6 +4,9 @@
   "workspaces": {
     "": {
       "name": "vite-http-tracker",
+      "dependencies": {
+        "ws": "^8.18.0",
+      },
       "devDependencies": {
         "@happy-dom/global-registrator": "^15.0.0",
         "@types/bun": "latest",

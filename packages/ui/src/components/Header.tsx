@@ -1,44 +1,13 @@
-import type { ReactNode } from "react";
-import {
-  ArrowDownIcon,
-  ArrowRightIcon,
-  Crosshair2Icon,
-  EnterFullScreenIcon,
-  LayersIcon,
-  Link2Icon,
-  MagnifyingGlassIcon,
-  TrashIcon,
-  ZoomInIcon,
-  ZoomOutIcon,
-} from "@radix-ui/react-icons";
 import { Logo } from "./Logo.js";
-import type { Orientation, RecordFilter } from "../graph.js";
 import { isLocale, useI18n } from "../i18n.js";
 
 export interface HeaderProps {
   connected: boolean;
-  filter: RecordFilter;
-  onChange: (filter: RecordFilter) => void;
-  showEdges: boolean;
-  onShowEdges: (v: boolean) => void;
-  showLegend: boolean;
-  onShowLegend: (v: boolean) => void;
-  orientation: Orientation;
-  onOrientation: (o: Orientation) => void;
-  onClear: () => void;
-  onRecenter: () => void;
-  onFitView: () => void;
-  onZoomIn: () => void;
-  onZoomOut: () => void;
   total: number;
   visible: number;
   batches: number;
   duplicates: number;
 }
-
-const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OTHER"];
-
-const icon = "size-3.5";
 
 function Stat({ value, label }: { value: number; label: string }) {
   return (
@@ -48,38 +17,6 @@ function Stat({ value, label }: { value: number; label: string }) {
         {label}
       </div>
     </div>
-  );
-}
-
-function ToolButton({
-  active,
-  danger,
-  onClick,
-  title,
-  children,
-}: {
-  active?: boolean;
-  danger?: boolean;
-  onClick: () => void;
-  title: string;
-  children: ReactNode;
-}) {
-  const base =
-    "grid size-7 place-items-center rounded-md border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary";
-  let state =
-    "border-base-300 bg-base-200/40 text-base-content/70 hover:bg-base-200 hover:text-base-content";
-  if (active) state = "border-primary/50 bg-primary/15 text-primary";
-  if (danger) state = "border-error/30 bg-error/10 text-error hover:bg-error/20";
-  return (
-    <button
-      className={`${base} ${state}`}
-      type="button"
-      title={title}
-      aria-label={title}
-      onClick={onClick}
-    >
-      {children}
-    </button>
   );
 }
 
@@ -102,28 +39,8 @@ function ConnectionBadge({ connected }: { connected: boolean }) {
   );
 }
 
-export function Header({
-  connected,
-  filter,
-  onChange,
-  showEdges,
-  onShowEdges,
-  showLegend,
-  onShowLegend,
-  orientation,
-  onOrientation,
-  onClear,
-  onRecenter,
-  onFitView,
-  onZoomIn,
-  onZoomOut,
-  total,
-  visible,
-  batches,
-  duplicates,
-}: HeaderProps) {
+export function Header({ connected, total, visible, batches, duplicates }: HeaderProps) {
   const { locale, locales, localeLabels, setLocale, t } = useI18n();
-  const hasFilters = Boolean(filter.method || filter.transport || filter.status || filter.url);
   return (
     <header className="relative z-20 shrink-0 border-b border-base-300/70 bg-base-100/90 backdrop-blur">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-primary/60 to-transparent" />
@@ -148,116 +65,7 @@ export function Header({
           <Stat value={duplicates} label={t("dupes")} />
         </div>
 
-        <div className="ml-auto flex flex-wrap items-center gap-x-3 gap-y-2">
-          <div className="flex items-center gap-1.5">
-            <select
-              className="select select-sm select-bordered focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              value={filter.method ?? ""}
-              onChange={(e) => onChange({ ...filter, method: e.target.value || undefined })}
-              aria-label={t("allMethods")}
-            >
-              <option value="">{t("allMethods")}</option>
-              {METHODS.map((m) => (
-                <option key={m} value={m}>
-                  {m}
-                </option>
-              ))}
-            </select>
-            <select
-              className="select select-sm select-bordered focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              value={filter.transport ?? ""}
-              onChange={(e) => {
-                const value = e.target.value;
-                const transport =
-                  value === "fetch" || value === "xhr" || value === "sse" || value === "websocket"
-                    ? value
-                    : undefined;
-                onChange({ ...filter, transport });
-              }}
-              aria-label={t("allTransports")}
-            >
-              <option value="">{t("allTransports")}</option>
-              <option value="fetch">{t("transportHttp")}</option>
-              <option value="xhr">XHR</option>
-              <option value="sse">{t("transportSse")}</option>
-              <option value="websocket">{t("transportWebsocket")}</option>
-            </select>
-            <input
-              className="input input-sm input-bordered w-16 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              value={filter.status ?? ""}
-              placeholder="404"
-              onChange={(e) => onChange({ ...filter, status: e.target.value || undefined })}
-              aria-label="Status"
-            />
-            <label className="input input-sm input-bordered flex w-40 items-center gap-1.5 text-base-content/60 focus-within:ring-2 focus-within:ring-primary">
-              <MagnifyingGlassIcon className="size-3.5" />
-              <input
-                className="min-w-0 grow bg-transparent p-0 text-base-content focus:outline-none focus:ring-0"
-                value={filter.url ?? ""}
-                placeholder={t("searchUrl")}
-                onChange={(e) => onChange({ ...filter, url: e.target.value || undefined })}
-                aria-label="URL"
-              />
-            </label>
-            {hasFilters && (
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                onClick={() => onChange({})}
-              >
-                {t("clearFilters")}
-              </button>
-            )}
-          </div>
-
-          <ToolButton
-            active={showEdges}
-            onClick={() => onShowEdges(!showEdges)}
-            title={t("showTimelineEdges")}
-          >
-            <Link2Icon className={icon} />
-          </ToolButton>
-
-          <ToolButton
-            active={showLegend}
-            onClick={() => onShowLegend(!showLegend)}
-            title={t("showDomainLegend")}
-          >
-            <LayersIcon className={icon} />
-          </ToolButton>
-
-          <div className="flex gap-1">
-            <ToolButton
-              active={orientation === "horizontal"}
-              onClick={() => onOrientation("horizontal")}
-              title={t("horizontalOrientation")}
-            >
-              <ArrowRightIcon className={icon} />
-            </ToolButton>
-            <ToolButton
-              active={orientation === "vertical"}
-              onClick={() => onOrientation("vertical")}
-              title={t("verticalOrientation")}
-            >
-              <ArrowDownIcon className={icon} />
-            </ToolButton>
-          </div>
-
-          <div className="flex gap-1">
-            <ToolButton onClick={onZoomOut} title={t("zoomOut")}>
-              <ZoomOutIcon className={icon} />
-            </ToolButton>
-            <ToolButton onClick={onRecenter} title={t("recenterTimeline")}>
-              <Crosshair2Icon className={icon} />
-            </ToolButton>
-            <ToolButton onClick={onFitView} title={t("fitView")}>
-              <EnterFullScreenIcon className={icon} />
-            </ToolButton>
-            <ToolButton onClick={onZoomIn} title={t("zoomIn")}>
-              <ZoomInIcon className={icon} />
-            </ToolButton>
-          </div>
-
+        <div className="ml-auto flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
           <ConnectionBadge connected={connected} />
 
           <label className="sr-only" htmlFor="language-select">
@@ -265,7 +73,7 @@ export function Header({
           </label>
           <select
             id="language-select"
-            className="select select-sm select-bordered w-40 max-w-40 truncate overflow-hidden text-ellipsis whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="select select-sm select-bordered w-40 max-w-40 truncate overflow-hidden bg-base-100 text-base-content text-ellipsis whitespace-nowrap focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             value={locale}
             title={localeLabels[locale]}
             onChange={(event) => {
@@ -279,10 +87,6 @@ export function Header({
               </option>
             ))}
           </select>
-
-          <ToolButton danger onClick={onClear} title={t("clearRequests")}>
-            <TrashIcon className={icon} />
-          </ToolButton>
         </div>
       </div>
     </header>

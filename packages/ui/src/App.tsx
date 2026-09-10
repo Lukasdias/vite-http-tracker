@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { ComponentProps } from "react";
 import {
   Background,
   MarkerType,
@@ -27,9 +28,11 @@ import { InspectPanel } from "./components/InspectPanel.js";
 import { JsonGraphView } from "./components/JsonGraphView.js";
 import { useTrackerToken } from "./hooks/useTrackerToken.js";
 import { routeForNodes, type Orientation, type NodeSide } from "./graph.js";
+import { domainOf } from "./grouping.js";
 import { useI18n } from "./i18n.js";
 import { useTemporalPlayback } from "./hooks/useTemporalPlayback.js";
 import { TemporalTaskbar } from "./components/TemporalTaskbar.js";
+import { CanvasToolbar } from "./components/CanvasToolbar.js";
 
 const nodeTypes = { request: RequestNode, domain: DomainNode };
 const EDGE_COLOR = "#54a7ff";
@@ -47,12 +50,14 @@ function FlowCanvas({
   orientation,
   temporal,
   onNodeClick,
+  toolbar,
 }: {
   nodes: (RequestFlowNode | DomainFlowNode)[];
   edges: Edge[];
   orientation: Orientation;
   temporal: ReturnType<typeof useTemporalPlayback>;
   onNodeClick: (id: string) => void;
+  toolbar: ComponentProps<typeof CanvasToolbar>;
 }) {
   const { fitView } = useReactFlow();
   const [rfNodes, setRfNodes, onNodesChange] = useNodesState(nodes);
@@ -94,6 +99,9 @@ function FlowCanvas({
       <Panel position="bottom-center">
         <TemporalTaskbar playback={temporal} />
       </Panel>
+      <Panel position="top-center">
+        <CanvasToolbar {...toolbar} />
+      </Panel>
     </ReactFlow>
   );
 }
@@ -110,10 +118,20 @@ function Dashboard() {
   const [filter, setFilter] = useRequestFilters();
   const [showEdges, setShowEdges] = useState(true);
   const [orientation, setOrientation] = useState<Orientation>("horizontal");
+  const [stackBursts, setStackBursts] = useState(true);
   const [selectedId, setSelectedId] = useRequestSelection();
   const [graphRecordId, setGraphRecordId] = useState<string | null>(null);
   const [showLegend, setShowLegend] = useState(true);
-  const { groups, domainNodes, nodes, edges } = useGraph(filter, showEdges, orientation);
+  const { groups, domainNodes, nodes, edges } = useGraph(
+    filter,
+    showEdges,
+    orientation,
+    stackBursts,
+  );
+  const domainOptions = useMemo(
+    () => [...new Set(groups.map((group) => domainOf(group.canonical.url)))].sort(),
+    [groups],
+  );
   const temporal = useTemporalPlayback(groups);
   const hasRequests = groups.length > 0;
   const hasVisibleNodes = nodes.length > 0;
@@ -168,23 +186,23 @@ function Dashboard() {
           (temporal.visibleIds.has(edge.source) && temporal.visibleIds.has(edge.target)),
       )
       .map((e) => {
-      const source = nodesById.get(e.source);
-      const target = nodesById.get(e.target);
-      const route = source && target ? routeForNodes(source, target, orientation) : undefined;
-      const isExternal = source?.parentId !== target?.parentId;
+        const source = nodesById.get(e.source);
+        const target = nodesById.get(e.target);
+        const route = source && target ? routeForNodes(source, target, orientation) : undefined;
+        const isExternal = source?.parentId !== target?.parentId;
 
-      return {
-        ...e,
-        type: "smoothstep",
-        sourceHandle: route?.sourceSide,
-        targetHandle: route?.targetSide,
-        sourcePosition: route ? nodeSidePosition[route.sourceSide] : undefined,
-        targetPosition: route ? nodeSidePosition[route.targetSide] : undefined,
-        animated: !isExternal,
-        style: { stroke: EDGE_COLOR, strokeWidth: 2, opacity: isExternal ? 0.65 : 1 },
-        pathOptions: { borderRadius: 16, offset: 24 },
-        markerEnd: { type: MarkerType.ArrowClosed, color: EDGE_COLOR },
-      };
+        return {
+          ...e,
+          type: "smoothstep",
+          sourceHandle: route?.sourceSide,
+          targetHandle: route?.targetSide,
+          sourcePosition: route ? nodeSidePosition[route.sourceSide] : undefined,
+          targetPosition: route ? nodeSidePosition[route.targetSide] : undefined,
+          animated: !isExternal,
+          style: { stroke: EDGE_COLOR, strokeWidth: 2, opacity: isExternal ? 0.65 : 1 },
+          pathOptions: { borderRadius: 16, offset: 24 },
+          markerEnd: { type: MarkerType.ArrowClosed, color: EDGE_COLOR },
+        };
       });
   }, [edges, nodes, orientation, temporal.enabled, temporal.visibleIds]);
 
@@ -207,21 +225,6 @@ function Dashboard() {
     <div className="flex h-screen flex-col bg-base-100 text-base-content">
       <Header
         connected={connected}
-        filter={filter}
-        onChange={setFilter}
-        showEdges={showEdges}
-        onShowEdges={setShowEdges}
-        showLegend={showLegend}
-        onShowLegend={setShowLegend}
-        orientation={orientation}
-        onOrientation={setOrientation}
-        onClear={() => clear.mutate(token)}
-        onRecenter={() => {
-          if (firstRequestNode) fitView({ nodes: [firstRequestNode], padding: 0.8, duration: 350 });
-        }}
-        onFitView={() => fitView({ padding: 0.2 })}
-        onZoomIn={() => zoomIn({ duration: 160 })}
-        onZoomOut={() => zoomOut({ duration: 160 })}
         total={stats.total}
         visible={stats.visible}
         batches={stats.batches}
@@ -238,6 +241,24 @@ function Dashboard() {
                 edges={graphEdges}
                 orientation={orientation}
                 temporal={temporal}
+                toolbar={{
+                  showEdges,
+                  onShowEdges: setShowEdges,
+                  showLegend,
+                  onShowLegend: setShowLegend,
+                  orientation,
+                  onOrientation: setOrientation,
+                  stackBursts,
+                  onStackBursts: setStackBursts,
+                  onClear: () => clear.mutate(token),
+                  onRecenter: () => {
+                    if (firstRequestNode)
+                      fitView({ nodes: [firstRequestNode], padding: 0.8, duration: 350 });
+                  },
+                  onFitView: () => fitView({ padding: 0.2 }),
+                  onZoomIn: () => zoomIn({ duration: 160 }),
+                  onZoomOut: () => zoomOut({ duration: 160 }),
+                }}
                 onNodeClick={(id) => {
                   setSelectedId(id);
                   setGraphRecordId(id);
@@ -261,7 +282,15 @@ function Dashboard() {
                   </div>
                 </div>
               )}
-              {showLegend && <Legend domains={domainNodes} onClose={() => setShowLegend(false)} />}
+              {showLegend && (
+                <Legend
+                  domains={domainNodes}
+                  domainOptions={domainOptions}
+                  filter={filter}
+                  onFilterChange={setFilter}
+                  onClose={() => setShowLegend(false)}
+                />
+              )}
             </div>
           )}
         </div>

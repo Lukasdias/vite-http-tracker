@@ -18,11 +18,15 @@ const valueClass: Record<string, string> = {
 export function JsonScalarNode({ data }: NodeProps<JsonScalarFlowNode>) {
   const { node } = data;
   return (
-    <div className="json-graph flex items-center gap-2 rounded-box border border-base-300 bg-base-200 px-2 py-1 shadow">
+    <div className="json-graph flex w-full min-w-0 items-start gap-2 overflow-hidden rounded-box border border-base-300 bg-base-200 px-2 py-1 shadow">
       <Handle type="target" position={Position.Left} />
       <span className="j-key text-xs">{node.key}</span>
       <span className="j-punct">:</span>
-      <span className={`text-xs ${valueClass[node.kind] ?? ""}`}>{node.value}</span>
+      <span
+        className={`max-h-16 min-w-0 overflow-y-auto break-all text-xs ${valueClass[node.kind] ?? ""}`}
+      >
+        {node.value}
+      </span>
       <Handle type="source" position={Position.Right} />
     </div>
   );

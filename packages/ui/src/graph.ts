@@ -1,5 +1,5 @@
 import type { RequestRecord } from "@vite-http-tracker/shared";
-import { partitionByDomain } from "./grouping.js";
+import { domainOf, partitionByDomain } from "./grouping.js";
 
 export interface GraphNode {
   id: string;
@@ -102,12 +102,15 @@ export function signatureOf(record: RequestRecord): string {
 export function groupRecords(
   records: RequestRecord[],
   windowMs = DUPLICATE_WINDOW_MS,
+  stackBursts = false,
 ): RecordGroup[] {
   const sorted = [...records].sort((a, b) => a.seq - b.seq);
   const bySig = new Map<string, RecordGroup[]>();
   const groups: RecordGroup[] = [];
   for (const record of sorted) {
-    const sig = signatureOf(record);
+    const sig = stackBursts
+      ? `${domainOf(record.url)}|${record.method.toUpperCase()}|${record.transport ?? ""}`
+      : signatureOf(record);
     const list = bySig.get(sig) ?? [];
     const last = list[list.length - 1];
     const lastMember = last?.members[last.members.length - 1];
@@ -129,15 +132,25 @@ export function groupRecords(
 }
 
 export interface RecordFilter {
+  domain?: string;
   method?: string;
   transport?: RequestRecord["transport"];
+  domains?: string[];
+  methods?: string[];
+  transports?: string[];
   status?: string;
   url?: string;
 }
 
 export function matchesFilter(record: RequestRecord, f: RecordFilter): boolean {
+  const domain = domainOf(record.url);
+  if (f.domain && domain !== f.domain) return false;
+  if (f.domains?.length && !f.domains.includes(domain)) return false;
   if (f.method && record.method.toUpperCase() !== f.method.toUpperCase()) return false;
+  if (f.methods?.length && !f.methods.includes(record.method.toUpperCase())) return false;
   if (f.transport && record.transport !== f.transport) return false;
+  if (f.transports?.length && (!record.transport || !f.transports.includes(record.transport)))
+    return false;
   if (f.status && String(record.status) !== f.status) return false;
   if (f.url && !record.url.toLowerCase().includes(f.url.toLowerCase())) return false;
   return true;
