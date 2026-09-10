@@ -104,3 +104,15 @@ export function parseHeaders(headers: Headers | Record<string, string>): Record<
   }
   return { ...headers };
 }
+
+export function parseRawHeaders(raw: string): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const line of raw.split(/\r?\n/)) {
+    const separator = line.indexOf(":");
+    if (separator <= 0) continue;
+    const name = line.slice(0, separator).trim().toLowerCase();
+    const value = line.slice(separator + 1).trim();
+    out[name] = value;
+  }
+  return out;
+}
