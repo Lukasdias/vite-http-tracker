@@ -1,6 +1,6 @@
 {
   "name": "vite-http-tracker",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": false,
   "description": "Capture and visualize frontend HTTP traffic during Vite development",
   "keywords": [
