@@ -3,6 +3,7 @@ import {
   Background,
   MarkerType,
   MiniMap,
+  Panel,
   Position,
   ReactFlow,
   ReactFlowProvider,
@@ -27,6 +28,8 @@ import { JsonGraphView } from "./components/JsonGraphView.js";
 import { useTrackerToken } from "./hooks/useTrackerToken.js";
 import { routeForNodes, type Orientation, type NodeSide } from "./graph.js";
 import { useI18n } from "./i18n.js";
+import { useTemporalPlayback } from "./hooks/useTemporalPlayback.js";
+import { TemporalTaskbar } from "./components/TemporalTaskbar.js";
 
 const nodeTypes = { request: RequestNode, domain: DomainNode };
 const EDGE_COLOR = "#54a7ff";
@@ -42,11 +45,13 @@ function FlowCanvas({
   nodes,
   edges,
   orientation,
+  temporal,
   onNodeClick,
 }: {
   nodes: (RequestFlowNode | DomainFlowNode)[];
   edges: Edge[];
   orientation: Orientation;
+  temporal: ReturnType<typeof useTemporalPlayback>;
   onNodeClick: (id: string) => void;
 }) {
   const { fitView } = useReactFlow();
@@ -86,6 +91,9 @@ function FlowCanvas({
         nodeStrokeWidth={1}
         nodeBorderRadius={2}
       />
+      <Panel position="bottom-center">
+        <TemporalTaskbar playback={temporal} />
+      </Panel>
     </ReactFlow>
   );
 }
@@ -106,6 +114,7 @@ function Dashboard() {
   const [graphRecordId, setGraphRecordId] = useState<string | null>(null);
   const [showLegend, setShowLegend] = useState(true);
   const { groups, domainNodes, nodes, edges } = useGraph(filter, showEdges, orientation);
+  const temporal = useTemporalPlayback(groups);
   const hasRequests = groups.length > 0;
   const hasVisibleNodes = nodes.length > 0;
   const selected = useRequest(selectedId);
@@ -138,10 +147,11 @@ function Dashboard() {
             poolSize: n.poolSize,
             orientation,
           },
+          hidden: temporal.enabled && !temporal.visibleIds.has(n.id),
         };
       }),
     ],
-    [domainNodes, nodes, groups, selected, orientation],
+    [domainNodes, nodes, groups, selected, orientation, temporal.enabled, temporal.visibleIds],
   );
 
   const firstRequestNode = useMemo(
@@ -151,7 +161,13 @@ function Dashboard() {
 
   const graphEdges = useMemo<Edge[]>(() => {
     const nodesById = new Map(nodes.map((node) => [node.id, node]));
-    return edges.map((e) => {
+    return edges
+      .filter(
+        (edge) =>
+          !temporal.enabled ||
+          (temporal.visibleIds.has(edge.source) && temporal.visibleIds.has(edge.target)),
+      )
+      .map((e) => {
       const source = nodesById.get(e.source);
       const target = nodesById.get(e.target);
       const route = source && target ? routeForNodes(source, target, orientation) : undefined;
@@ -169,8 +185,8 @@ function Dashboard() {
         pathOptions: { borderRadius: 16, offset: 24 },
         markerEnd: { type: MarkerType.ArrowClosed, color: EDGE_COLOR },
       };
-    });
-  }, [edges, nodes, orientation]);
+      });
+  }, [edges, nodes, orientation, temporal.enabled, temporal.visibleIds]);
 
   const selectedGroup = useMemo(
     () => groups.find((g) => g.canonical.requestId === selectedId) ?? null,
@@ -221,6 +237,7 @@ function Dashboard() {
                 nodes={graphNodes}
                 edges={graphEdges}
                 orientation={orientation}
+                temporal={temporal}
                 onNodeClick={(id) => {
                   setSelectedId(id);
                   setGraphRecordId(id);
