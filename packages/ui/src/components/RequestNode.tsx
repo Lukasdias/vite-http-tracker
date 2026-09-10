@@ -32,17 +32,21 @@ function formatBytes(bytes: number): string {
 
 export function RequestNode({ data }: NodeProps<RequestFlowNode>) {
   const { t } = useI18n();
-  const { record, dupCount, strictMode, batchSize, poolSize, orientation } = data;
+  const { record, dupCount, strictMode, batchSize, poolSize } = data;
   const isBatch = (batchSize ?? 0) > 1;
-  const targetHandle = orientation === "vertical" ? Position.Top : Position.Left;
-  const sourceHandle = orientation === "vertical" ? Position.Bottom : Position.Right;
   const isTimeout = record.timedOut === true;
   const isFailure = !isTimeout && statusClass(record.status) === "error";
   const transportLabel = record.transport === "websocket" ? "WS" : record.transport?.toUpperCase();
+  const handles = [
+    { id: "top", position: Position.Top },
+    { id: "right", position: Position.Right },
+    { id: "bottom", position: Position.Bottom },
+    { id: "left", position: Position.Left },
+  ] as const;
 
   return (
     <div
-      className={`min-w-48 rounded-box border bg-base-200 p-2 shadow transition-colors ${
+      className={`w-72 min-w-0 rounded-box border bg-base-200 p-2 shadow transition-colors ${
         isFailure
           ? "border-error/70 bg-error/5"
           : record.poolId && (poolSize ?? 0) > 1
@@ -52,8 +56,16 @@ export function RequestNode({ data }: NodeProps<RequestFlowNode>) {
               : "border-base-300"
       }`}
     >
-      <Handle type="target" position={targetHandle} />{" "}
-      <div className="flex items-center gap-2">
+      {handles.map(({ id, position }) => (
+        <Handle
+          key={`target-${id}`}
+          id={id}
+          type="target"
+          position={position}
+          isConnectable={false}
+        />
+      ))}
+      <div className="flex flex-wrap items-center gap-1.5">
         <span
           className="rounded px-1.5 py-0.5 text-xs font-semibold"
           style={{
@@ -98,7 +110,15 @@ export function RequestNode({ data }: NodeProps<RequestFlowNode>) {
           {t("likelyStrictMode")}
         </div>
       )}
-      <Handle type="source" position={sourceHandle} />
+      {handles.map(({ id, position }) => (
+        <Handle
+          key={`source-${id}`}
+          id={id}
+          type="source"
+          position={position}
+          isConnectable={false}
+        />
+      ))}
     </div>
   );
 }

@@ -3,6 +3,7 @@ import {
   Background,
   MarkerType,
   MiniMap,
+  Position,
   ReactFlow,
   ReactFlowProvider,
   useEdgesState,
@@ -24,11 +25,18 @@ import { Header } from "./components/Header.js";
 import { InspectPanel } from "./components/InspectPanel.js";
 import { JsonGraphView } from "./components/JsonGraphView.js";
 import { useTrackerToken } from "./hooks/useTrackerToken.js";
-import type { Orientation } from "./graph.js";
+import { routeForNodes, type Orientation, type NodeSide } from "./graph.js";
 import { useI18n } from "./i18n.js";
 
 const nodeTypes = { request: RequestNode, domain: DomainNode };
 const EDGE_COLOR = "#54a7ff";
+
+const nodeSidePosition: Record<NodeSide, Position> = {
+  top: Position.Top,
+  right: Position.Right,
+  bottom: Position.Bottom,
+  left: Position.Left,
+};
 
 function FlowCanvas({
   nodes,
@@ -141,16 +149,28 @@ function Dashboard() {
     [graphNodes],
   );
 
-  const graphEdges = useMemo<Edge[]>(
-    () =>
-      edges.map((e) => ({
+  const graphEdges = useMemo<Edge[]>(() => {
+    const nodesById = new Map(nodes.map((node) => [node.id, node]));
+    return edges.map((e) => {
+      const source = nodesById.get(e.source);
+      const target = nodesById.get(e.target);
+      const route = source && target ? routeForNodes(source, target, orientation) : undefined;
+      const isExternal = source?.parentId !== target?.parentId;
+
+      return {
         ...e,
-        animated: true,
-        style: { stroke: EDGE_COLOR, strokeWidth: 2 },
+        type: "smoothstep",
+        sourceHandle: route?.sourceSide,
+        targetHandle: route?.targetSide,
+        sourcePosition: route ? nodeSidePosition[route.sourceSide] : undefined,
+        targetPosition: route ? nodeSidePosition[route.targetSide] : undefined,
+        animated: !isExternal,
+        style: { stroke: EDGE_COLOR, strokeWidth: 2, opacity: isExternal ? 0.65 : 1 },
+        pathOptions: { borderRadius: 16, offset: 24 },
         markerEnd: { type: MarkerType.ArrowClosed, color: EDGE_COLOR },
-      })),
-    [edges],
-  );
+      };
+    });
+  }, [edges, nodes, orientation]);
 
   const selectedGroup = useMemo(
     () => groups.find((g) => g.canonical.requestId === selectedId) ?? null,

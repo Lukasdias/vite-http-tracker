@@ -31,6 +31,13 @@ export interface GraphEdge {
   gap?: number;
 }
 
+export type NodeSide = "top" | "right" | "bottom" | "left";
+
+export interface EdgeRoute {
+  sourceSide: NodeSide;
+  targetSide: NodeSide;
+}
+
 export interface Graph {
   nodes: GraphNode[];
   edges: GraphEdge[];
@@ -50,13 +57,13 @@ export const METHOD_COLORS: Record<string, string> = {
   DELETE: "#ff6b6b",
 };
 export const OTHER_METHOD_COLOR = "#cfd3dc";
-export const X_GAP = 300;
-export const Y_GAP = 180;
+export const X_GAP = 360;
+export const Y_GAP = 220;
 export const DUPLICATE_WINDOW_MS = 200;
 export const DOMAIN_PADDING = 16;
 export const DOMAIN_GAP = 40;
-export const NODE_W = 224;
-export const NODE_H = 72;
+export const NODE_W = 288;
+export const NODE_H = 120;
 
 export interface DomainNode {
   id: string;
@@ -145,6 +152,28 @@ export function filterGroups(groups: RecordGroup[], f: RecordFilter): RecordGrou
 }
 
 export type Orientation = "horizontal" | "vertical";
+
+export function routeForNodes(
+  source: Pick<GraphNode, "parentId" | "x" | "y">,
+  target: Pick<GraphNode, "parentId" | "x" | "y">,
+  orientation: Orientation,
+): EdgeRoute {
+  if (source.parentId === target.parentId) {
+    return orientation === "horizontal"
+      ? { sourceSide: "right", targetSide: "left" }
+      : { sourceSide: "bottom", targetSide: "top" };
+  }
+
+  if (orientation === "horizontal") {
+    return source.y <= target.y
+      ? { sourceSide: "bottom", targetSide: "top" }
+      : { sourceSide: "top", targetSide: "bottom" };
+  }
+
+  return source.x <= target.x
+    ? { sourceSide: "right", targetSide: "left" }
+    : { sourceSide: "left", targetSide: "right" };
+}
 
 export function buildGraph(
   groups: RecordGroup[],

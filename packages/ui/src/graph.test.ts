@@ -3,6 +3,7 @@ import type { RequestRecord } from "@vite-http-tracker/shared";
 import {
   buildGraph,
   buildGroupedGraph,
+  routeForNodes,
   filterGroups,
   groupRecords,
   matchesFilter,
@@ -211,5 +212,37 @@ describe("buildGroupedGraph", () => {
     expect(domainNodes[0]!.x).toBe(0);
     expect(domainNodes[1]!.x).toBeGreaterThan(domainNodes[0]!.x);
     expect(domainNodes[0]!.y).toBe(0);
+  });
+});
+
+describe("routeForNodes", () => {
+  test("routes nodes in the same horizontal group from right to left", () => {
+    expect(
+      routeForNodes(
+        { parentId: "domain:a", x: 0, y: 0 },
+        { parentId: "domain:a", x: 360, y: 0 },
+        "horizontal",
+      ),
+    ).toEqual({ sourceSide: "right", targetSide: "left" });
+  });
+
+  test("routes external horizontal connections through vertical sides", () => {
+    expect(
+      routeForNodes(
+        { parentId: "domain:a", x: 0, y: 0 },
+        { parentId: "domain:b", x: 0, y: 220 },
+        "horizontal",
+      ),
+    ).toEqual({ sourceSide: "bottom", targetSide: "top" });
+  });
+
+  test("routes external vertical connections through horizontal sides", () => {
+    expect(
+      routeForNodes(
+        { parentId: "domain:a", x: 0, y: 0 },
+        { parentId: "domain:b", x: 360, y: 0 },
+        "vertical",
+      ),
+    ).toEqual({ sourceSide: "right", targetSide: "left" });
   });
 });
