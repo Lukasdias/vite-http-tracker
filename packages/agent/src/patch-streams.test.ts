@@ -79,4 +79,17 @@ describe("patchWebSocket", () => {
     expect(captured).toHaveLength(2);
     expect(captured.every((record) => record.eventType === "message")).toBe(true);
   });
+
+  test("ignores the tracker's internal transport connection", () => {
+    const captured: Array<{ eventType?: string }> = [];
+    const restore = patchWebSocket({ enqueue: (record) => captured.push(record) }, false, {
+      ignoredUrl: "ws://tracker.local/events?token=dev",
+    });
+    const socket = new window.WebSocket("ws://tracker.local/events?token=dev") as unknown as FakeWebSocket;
+    emit(socket, "open");
+    emit(socket, "close");
+    restore();
+
+    expect(captured).toHaveLength(0);
+  });
 });

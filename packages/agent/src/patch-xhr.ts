@@ -1,5 +1,12 @@
 import { DEFAULT_BODY_CAP, type RequestRecord } from "@vite-http-tracker/shared";
-import { batchFor, hashRequest, newId, nextSeq, parseHeaders, serializeBody } from "./capture.js";
+import {
+  batchFor,
+  hashRequest,
+  newId,
+  nextSeq,
+  parseRawHeaders,
+  serializeBody,
+} from "./capture.js";
 import { redactHeaders, redactString } from "./redact.js";
 
 interface XhrSink {
@@ -40,7 +47,7 @@ export function patchXhr(sink: XhrSink, strictMode = false): () => void {
           duration: end - this.start,
           requestHeaders: redactHeaders(this.requestHeaders),
           responseHeaders: redactHeaders(
-            parseHeaders(new Headers(this.getAllResponseHeaders() as unknown as HeadersInit)),
+            parseRawHeaders(this.getAllResponseHeaders()),
           ),
           requestBody: pending.body ? redactString(pending.body) : undefined,
           responseBody: responseBody === undefined ? undefined : redactString(responseBody),

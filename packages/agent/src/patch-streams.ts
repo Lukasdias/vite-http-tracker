@@ -9,6 +9,7 @@ interface StreamSink {
 interface StreamOptions {
   captureMessages?: boolean;
   maxMessages?: number;
+  ignoredUrl?: string;
 }
 
 const DEFAULT_MAX_MESSAGES = 100;
@@ -128,6 +129,7 @@ export function patchWebSocket(
     constructor(url: string | URL, protocols?: string | string[]) {
       super(url, protocols);
       this.streamUrl = typeof url === "string" ? url : url.toString();
+      if (this.streamUrl === options.ignoredUrl) return;
       let messageCount = 0;
       this.addEventListener("open", () =>
         sink.enqueue(

@@ -1,5 +1,12 @@
 import { describe, expect, test } from "bun:test";
-import { batchFor, hashRequest, parseHeaders, readStreamBody, serializeBody } from "./capture.js";
+import {
+  batchFor,
+  hashRequest,
+  parseHeaders,
+  parseRawHeaders,
+  readStreamBody,
+  serializeBody,
+} from "./capture.js";
 import { DEFAULT_BODY_CAP } from "@vite-http-tracker/shared";
 
 describe("serializeBody", () => {
@@ -47,6 +54,12 @@ describe("parseHeaders", () => {
   });
   test("passes through plain object", () => {
     expect(parseHeaders({ A: "1" })).toEqual({ A: "1" });
+  });
+  test("reads XMLHttpRequest's raw header format", () => {
+    expect(parseRawHeaders("Content-Type: application/json\r\nX-Request-Id: abc\r\n")).toEqual({
+      "content-type": "application/json",
+      "x-request-id": "abc",
+    });
   });
 });
 

@@ -50,7 +50,7 @@ export function initAgent(opts: AgentOptions = {}): (() => void)[] {
   const restoreWebSocket = patchWebSocket(
     { enqueue: (r) => transport.enqueue(r) },
     strictMode,
-    streamOptions,
+    { ...streamOptions, ignoredUrl: wsUrl },
   );
   return [
     restoreFetch,
