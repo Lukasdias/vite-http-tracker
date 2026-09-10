@@ -1,4 +1,4 @@
-import { chmod, cp, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { cp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 
 const packages = ["shared", "agent", "server", "plugin"] as const;
 const distRoot = new URL("../dist/", import.meta.url);
@@ -48,12 +48,11 @@ async function rewriteInternalImports(directory: URL): Promise<void> {
       path,
       source
         .replaceAll("@vite-http-tracker/shared", "vite-http-tracker/shared")
-        .replaceAll("@vite-http-tracker/agent", "vite-http-tracker/agent"),
+        .replaceAll("@vite-http-tracker/agent", "vite-http-tracker/agent")
+        .replaceAll("@vite-http-tracker/server", "vite-http-tracker/server"),
     );
   }
 }
 
 await rewriteInternalImports(new URL("packages/", distRoot));
-await chmod(new URL("packages/server/src/cli.js", distRoot), 0o755);
-
 console.log("Built publishable package in dist/");

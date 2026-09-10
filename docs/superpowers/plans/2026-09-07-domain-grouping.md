@@ -1,5 +1,7 @@
 # Domain-grouped graph Implementation Plan
 
+> **Historical:** This plan predates automatic tracker startup. Its development commands are retained only as implementation history; use the root `AGENTS.md` and `README.md` for current workflows.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace the flat timeline with a domain-grouped graph: colored container per URL host, chronological edges preserved, toggleable legend, big URLs removed from nodes and the inspect sidebar.

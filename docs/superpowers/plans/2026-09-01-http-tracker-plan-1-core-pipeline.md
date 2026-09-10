@@ -1,5 +1,7 @@
 # http-tracker Plan 1 — Core Pipeline Implementation Plan
 
+> **Historical:** This plan is superseded by the current Node-compatible server and Vite-managed lifecycle. Its Bun CLI examples describe the original implementation and are not current user instructions.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Build the end-to-end core: the `shared` types/constants, the `agent` browser library (fetch/XHR capture, redaction, caps, WS transport), and the `server` (byte-LRU store, WS broadcast hub, HTTP ingestion, `http-tracker` CLI) serving a minimal timeline dashboard — so a request captured from a page shows up live on a dashboard at `localhost:4000`.

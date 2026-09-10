@@ -1,5 +1,7 @@
 # JSON-as-Graph View Implementation Plan
 
+> **Historical:** This plan predates automatic tracker startup. Its development commands are retained only as implementation history; use the root `AGENTS.md` and `README.md` for current workflows.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Add a full-screen JSON-as-graph view (JSON Crack style) to the dashboard that replaces the request timeline when a request node is clicked, rendering the response body (fallback request body) as a node-link graph of collapsible containers and scalar leaves.

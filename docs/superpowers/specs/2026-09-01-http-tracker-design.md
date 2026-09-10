@@ -1,5 +1,7 @@
 # http-tracker — Design Spec
 
+> **Historical:** This design describes the original Bun/Hono CLI architecture. The current implementation uses a Node-compatible server started and stopped by the Vite plugin; see `README.md` and `AGENTS.md`.
+
 Date: 2026-09-01
 Status: Draft (pending user review)
 

@@ -1,10 +1,17 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { startServer } from "./server.js";
+import { startServer, uiDistCandidates } from "./server.js";
 
 let srv: Awaited<ReturnType<typeof startServer>>;
 let base = "";
 
 describe("server", () => {
+  test("checks the published UI directory before workspace fallbacks", () => {
+    expect(uiDistCandidates("/package/dist/packages/server/src")).toEqual([
+      "/package/dist/ui/dist",
+      "/package/dist/packages/ui/dist",
+    ]);
+  });
+
   test("starts and serves index", async () => {
     srv = await startServer({ port: 0, token: "dev" });
     base = `http://127.0.0.1:${srv.port}`;
