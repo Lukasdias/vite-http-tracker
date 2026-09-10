@@ -1,9 +1,6 @@
 {
   "name": "@vite-http-tracker/server",
   "version": "0.0.0",
-  "bin": {
-    "vite-http-tracker": "./src/cli.ts"
-  },
   "type": "module",
   "types": "./src/index.ts",
   "exports": {
@@ -11,6 +8,9 @@
   },
   "dependencies": {
     "@vite-http-tracker/shared": "*",
-    "hono": "^4.0.0"
+    "ws": "^8.21.3"
+  },
+  "devDependencies": {
+    "@types/ws": "^8.18.1"
   }
 }

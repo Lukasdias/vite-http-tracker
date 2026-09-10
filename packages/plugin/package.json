@@ -6,6 +6,9 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "dependencies": {
+    "@vite-http-tracker/server": "*"
+  },
   "peerDependencies": {
     "vite": "^8.0.0"
   }

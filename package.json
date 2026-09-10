@@ -20,15 +20,11 @@
     "type": "git",
     "url": "https://github.com/Lukasdias/vite-http-tracker"
   },
-  "bin": {
-    "vite-http-tracker": "./bin/vite-http-tracker.js"
-  },
   "workspaces": [
     "packages/*",
     "apps/*"
   ],
   "files": [
-    "bin",
     "dist",
     "LICENSE",
     "README.md"
@@ -65,24 +61,19 @@
     "pack:check": "npm pack --dry-run",
     "prepack": "bun run build:publish",
     "test": "bun test",
-    "dev:server": "bun run packages/server/src/cli.ts",
-    "dev:all:react": "concurrently -k -n tracker,react -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/react-app dev\"",
-    "dev:all:vue": "concurrently -k -n tracker,vue -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/vue-app dev\"",
-    "dev:all:solid": "concurrently -k -n tracker,solid -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/solid-app dev\"",
-    "dev:all:svelte": "concurrently -k -n tracker,svelte -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/svelte-app dev\"",
-    "dev:all:preact": "concurrently -k -n tracker,preact -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/preact-app dev\"",
-    "dev:all:vanilla": "concurrently -k -n tracker,vanilla -c blue,green \"bun run packages/server/src/cli.ts --no-open\" \"bun run --cwd apps/vanilla-app dev\"",
     "build": "bun run build:publish",
     "build:ui": "bun run --cwd packages/ui build",
     "lint": "oxlint packages apps",
     "format": "oxfmt --write packages apps"
   },
   "dependencies": {
-    "hono": "^4.0.0"
+    "ws": "^8.18.0"
   },
   "devDependencies": {
     "@happy-dom/global-registrator": "^15.0.0",
     "@types/bun": "latest",
+    "@types/node": "^24.0.0",
+    "@types/ws": "^8.18.0",
     "concurrently": "^10.0.5",
     "happy-dom": "^15.0.0",
     "oxfmt": "^0.66.0",
@@ -91,8 +82,5 @@
   },
   "peerDependencies": {
     "vite": "^8.0.0"
-  },
-  "engines": {
-    "bun": ">=1.4.0"
   }
 }

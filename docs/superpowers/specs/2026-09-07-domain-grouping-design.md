@@ -1,5 +1,7 @@
 # Domain-grouped graph
 
+> **Historical:** This design predates automatic tracker startup. For current runtime and usage details, see `README.md` and `AGENTS.md`.
+
 Date: 2026-09-07
 
 ## Problem

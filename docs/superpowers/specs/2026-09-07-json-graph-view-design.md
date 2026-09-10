@@ -1,5 +1,7 @@
 # json-graph-view — Design Spec
 
+> **Historical:** This design predates automatic tracker startup. For current runtime and usage details, see `README.md` and `AGENTS.md`.
+
 Date: 2026-09-07
 Status: Draft (pending user review)
 

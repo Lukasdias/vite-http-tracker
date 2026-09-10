@@ -1,4 +1,5 @@
 import { expect, test } from "bun:test";
+import { EventEmitter } from "node:events";
 import type { Plugin } from "vite";
 import { viteHttpTracker, type ViteHttpTrackerOptions } from "./index.js";
 
@@ -86,4 +87,21 @@ test("passes stream capture options to the browser agent", async () => {
 
 test("autoInject false leaves the application HTML without an agent entry", async () => {
   expect(await injectedTags(viteHttpTracker({ autoInject: false }))).toEqual([]);
+});
+
+test("starts the dashboard and reports its route through Vite", async () => {
+  const messages: string[] = [];
+  const httpServer = new EventEmitter();
+  const configureServer = viteHttpTracker({ port: 0 }).configureServer;
+  if (typeof configureServer !== "function") throw new Error("Missing configureServer hook");
+  await Reflect.apply(configureServer, {}, [
+    {
+      config: { logger: { info: (message: string) => messages.push(message) } },
+      httpServer,
+    },
+  ]);
+  expect(messages[0]).toMatch(
+    /^vite-http-tracker: dashboard disponível em http:\/\/127\.0\.0\.1:\d+\/\?token=dev$/,
+  );
+  httpServer.emit("close");
 });

@@ -1,10 +1,12 @@
 import { readdir, readFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { Plugin, ResolvedConfig } from "vite";
+import { startServer } from "@vite-http-tracker/server";
+import type { Plugin, ResolvedConfig, ViteDevServer } from "vite";
 
 export interface ViteHttpTrackerOptions {
   serverUrl?: string;
   token?: string;
+  port?: number;
   autoInject?: boolean;
   showIndicator?: boolean;
   captureStreamMessages?: boolean;
@@ -47,9 +49,11 @@ async function detectStrictMode(root: string): Promise<boolean> {
 export function viteHttpTracker(opts: ViteHttpTrackerOptions = {}): Plugin {
   const serverUrl = opts.serverUrl;
   const token = opts.token ?? "dev";
+  const port = opts.port ?? 4000;
   const autoInject = opts.autoInject ?? true;
   const showIndicator = opts.showIndicator ?? true;
   let strictMode = false;
+  let tracker: Awaited<ReturnType<typeof startServer>> | undefined;
 
   return {
     name: "vite-http-tracker",
@@ -57,13 +61,25 @@ export function viteHttpTracker(opts: ViteHttpTrackerOptions = {}): Plugin {
     async configResolved(config: ResolvedConfig) {
       if (autoInject) strictMode = await detectStrictMode(config.root);
     },
+    async configureServer(vite: ViteDevServer) {
+      if (!autoInject || tracker) return;
+      tracker = await startServer({ port, token });
+      const dashboardUrl = `http://127.0.0.1:${tracker.port}/?token=${encodeURIComponent(token)}`;
+      vite.config.logger.info(`vite-http-tracker: dashboard disponível em ${dashboardUrl}`);
+      vite.httpServer?.once("close", () => {
+        void tracker?.close();
+        tracker = undefined;
+      });
+    },
     resolveId(id) {
       if (id === VIRTUAL_ID) return RESOLVED_ID;
     },
     load(id) {
       if (id === RESOLVED_ID) {
         const args: string[] = [];
-        if (serverUrl) args.push(`serverUrl: ${JSON.stringify(serverUrl)}`);
+        const resolvedServerUrl =
+          serverUrl ?? (port === 4000 ? undefined : `http://127.0.0.1:${port}`);
+        if (resolvedServerUrl) args.push(`serverUrl: ${JSON.stringify(resolvedServerUrl)}`);
         args.push(`token: ${JSON.stringify(token)}`, `strictMode: ${strictMode}`);
         if (opts.captureStreamMessages !== undefined)
           args.push(`captureStreamMessages: ${JSON.stringify(opts.captureStreamMessages)}`);
